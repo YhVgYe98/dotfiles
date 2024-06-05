@@ -1,0 +1,13 @@
+
+;;; The following lines added by ql:add-to-init-file:
+#-quicklisp
+(let ((quicklisp-init "E:/Documents/quicklisp/setup.lisp"))
+  (when (probe-file quicklisp-init)
+    (load quicklisp-init)))
+
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ql:quickload :swank))
+
+(defun open-swank ()
+  (swank:create-server :dont-close t))

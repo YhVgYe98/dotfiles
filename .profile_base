@@ -1,0 +1,15 @@
+# proxy setting
+# special for wsl
+if [ $WSL_DISTRO_NAME ];then
+    export ALL_PROXY="http://$(ip route show | grep -i default | awk '{print $3}'):7890"
+else
+    alias clashon='export ALL_PROXY="http://127.0.0.1:7890"; export HTTP_PROXY="http://127.0.0.1:7890"'
+    alias clashoff='unset HTTP_PROXY HTTPS_PROXY ALL_PROXY'
+    clashon
+fi
+
+
+alias vim='nvim'
+alias ariadl='aria2c --no-conf -x 16'
+
+export GPG_TTY=$(tty)

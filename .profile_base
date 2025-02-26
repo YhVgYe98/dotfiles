@@ -12,6 +12,15 @@ fi
 
 
 alias vim='nvim'
-alias ariadl='aria2c --no-conf -x 16'
+alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'
+alias tmuxa='tmux new-session -A'
 
 export GPG_TTY=$(tty)
+
+
+# auto open tmux
+# if ! { [[ -n "$TMUX" ]] && [[ "$TERM" =~ "tmux.*|screen.*" ]]; } && type tmux >/dev/null 2>/dev/null; then
+#     tmux new-session -A -s ${USER}
+# fi
+
+export GOPROXY=https://mirrors.aliyun.com/goproxy/

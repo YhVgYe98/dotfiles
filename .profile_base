@@ -12,15 +12,16 @@ alias clashon='\
 '
 alias clashoff='unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy'
 if [ $WSL_DISTRO_NAME ];then
-    proxy_addr="http://$(ip route show | grep -i default | awk '{print $3}'):7890"
-    export ALL_PROXY=$proxy_addr
-    export HTTP_PROXY=$proxy_addr
-    export HTTPS_PROXY=$proxy_addr
-    export all_proxy=$proxy_addr
-    export http_proxy=$proxy_addr
-    export https_proxy=$proxy_addr
-    export NO_PROXY=127.0.0.1,localhost
-    export no_proxy=127.0.0.1,localhost
+    # TUN mode now 
+    # proxy_addr="http://$(ip route show | grep -i default | awk '{print $3}'):7890"
+    # export ALL_PROXY=$proxy_addr
+    # export HTTP_PROXY=$proxy_addr
+    # export HTTPS_PROXY=$proxy_addr
+    # export all_proxy=$proxy_addr
+    # export http_proxy=$proxy_addr
+    # export https_proxy=$proxy_addr
+    # export NO_PROXY=127.0.0.1,localhost
+    # export no_proxy=127.0.0.1,localhost
 else
     clashon
 fi

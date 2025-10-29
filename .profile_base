@@ -28,7 +28,7 @@ fi
 
 alias vim='nvim'
 alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'
-alias tmuxa='tmux new-session -A'
+alias tmuxa='tmux new-session -A -s main'
 
 export GPG_TTY=$(tty)
 

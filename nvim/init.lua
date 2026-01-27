@@ -1,37 +1,45 @@
-require("keymaps")
-require("options")
+-- 基础路径配置
+local config_dir = vim.fn.stdpath('config')
+local cache_dir = vim.fn.stdpath('cache')
+local data_dir = vim.fn.stdpath('data')
+local fennel_version = "1.6.1"
+local fennel_name = "fennel-" .. fennel_version .. ".lua"
+local fennel_path = vim.fs.joinpath(data_dir, fennel_name)
+local fennel_temp_path = vim.fs.joinpath(cache_dir, fennel_name)
 
+-- 下载 fennel.lua
+if vim.fn.filereadable(fennel_path) == 0 then
+	vim.fn.mkdir(cache_dir, "p")
+	vim.fn.mkdir(data_dir, "p")
 
-
-
--- Bootstrap lazy.nvim
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
-    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-    if vim.v.shell_error ~= 0 then
-        vim.api.nvim_echo({
-            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-            { out, "WarningMsg" },
-            { "\nPress any key to exit..." },
-        }, true, {})
-        vim.fn.getchar()
-        os.exit(1)
-    end
+	local url = "https://fennel-lang.org/downloads/fennel-" .. fennel_version .. ".lua"
+	print("Downloading Fennel compiler...")
+	local output = vim.fn.system({"curl", "-L", url, "-o", fennel_temp_path})
+	if vim.v.shell_error ~= 0 then
+		vim.notify("Fennel download failed:\n" .. output, vim.log.levels.ERROR)
+		return nil
+	end
+	
+	local success, err = os.rename(fennel_temp_path, fennel_path)
+        if not success then
+            vim.notify("Download success but failed to move file: " .. err, vim.log.levels.ERROR)
+            return nil
+        end
+	print("Fennel compiler download success!")
 end
-vim.opt.rtp:prepend(lazypath)
 
--- Make sure to setup `mapleader` and `maplocalleader` before
--- loading lazy.nvim so that mappings are correct.
--- This is also a good place to setup other settings (vim.opt)
-vim.g.mapleader = " "
-vim.g.maplocalleader = "\\"
+local fennel = dofile(fennel_path)
 
--- Setup lazy.nvim
-require("lazy").setup({
-    spec = {
-        -- import your plugins
-        { import = "plugins" },
-    },
-    checker = { enabled = true },
-})
+-- 配置 Fennel 搜索路径
+local fnl_cfg_path = vim.fs.joinpath(config_dir, "fnl")
+fennel['path']= vim.fs.joinpath(fnl_cfg_path, "?.fnl") .. ";" .. vim.fs.joinpath(fnl_cfg_path, "?", "init.fnl")
+fennel['macro-path'] = fennel.path
+
+-- 注册 Fennel 加载器
+table.insert(package.loaders or package.searchers, 1, fennel.makeSearcher({
+    correlate = true, -- 出错时将 Lua 行号映射回 Fennel 行号
+    useMetadata = false,
+}))
+
+-- 加载入口文件
+require("init")

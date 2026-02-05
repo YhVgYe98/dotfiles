@@ -86,7 +86,9 @@
 
     :completeopt "menu,menuone,noselect,noinsert"
     :pumheight 10
-    :shortmess :append "c")
+    :shortmess :append "c"
+
+    :exrc true)
 
 ;;;;;;;;; KEYMAPS ;;;;;;;;;;;
 (set vim.g.mapleader " ")
@@ -114,6 +116,9 @@
 (vim.keymap.set "v" "J" ":m '>+1<CR>gv=gv" {:desc "Move selection down"})
 (vim.keymap.set "v" "K" ":m '<-2<CR>gv=gv" {:desc "Move selection up"})
 
+(vim.keymap.set "n" "<A-z>" "<cmd>set wrap!<CR>" {:desc "Toggle line wrap"})
+
+;; LSP 快捷键
 (vim.api.nvim_create_autocmd "LspAttach" {
     :group (vim.api.nvim_create_augroup :UserLspConfig {})
     :callback (fn [args]
@@ -132,7 +137,8 @@
                   (buf-map :n "[d" vim.diagnostic.goto_prev "Prev Diagnostic")
                   (buf-map :n "]d" vim.diagnostic.goto_next "Next Diagnostic")
                   (buf-map :n "gl" (fn [] (vim.diagnostic.open_float)) "Show Diagnostic Float")
-                  (buf-map :n "<leader>dl" (fn [] (vim.diagnostic.setloclist)) "Diagnostic LocList")))})
+                  (buf-map :n "<leader>dl" (fn [] (vim.diagnostic.setloclist)) "Diagnostic LocList")
+                  (buf-map :n "<leader>lf" vim.lsp.buf.format "Format file")))})
 
 ;;;;;;;;; PACKAGES ;;;;;;;;;;
 ;;;;;;;;;; package manager ;;;;;;;;;;;
@@ -167,7 +173,7 @@
     :lazy false
     :build ":TSUpdate"
     :branch "master"
-    :opts {:highlight {:enable true}
+    :opts {:highlight {:enable true :disable ["latex"]}
            :indent {:enable true}
            :ensure_installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]}
     :config (lambda [_ opts] 
@@ -320,6 +326,18 @@
 (table.insert PKG (mixed-map :iota "windwp/nvim-autopairs" :event "InsertEnter" :opts {}))
 ;; Git 状态
 (table.insert PKG (mixed-map :iota "lewis6991/gitsigns.nvim" :event "VeryLazy" :opts {}))
+
+
+
+
+;;;;;;;;;;;;; FILETPYE PLUGINS ;;;;;;;;;;;;;
+;;;;;;;;;; latex ;;;;;;;;;;
+(table.insert PKG (mixed-map
+    :iota "lervag/vimtex"
+    :lazy false
+    :init (fn [] (set vim.g.vimtex_view_method "general"))))
+
+
 
 
 ;;;;;;;;;; install all packages ;;;;;;;;;;;

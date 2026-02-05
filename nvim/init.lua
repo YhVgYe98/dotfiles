@@ -9,30 +9,30 @@ local fennel_temp_path = vim.fs.joinpath(cache_dir, fennel_name)
 
 -- 下载 fennel.lua
 if vim.fn.filereadable(fennel_path) == 0 then
-	vim.fn.mkdir(cache_dir, "p")
-	vim.fn.mkdir(data_dir, "p")
+    vim.fn.mkdir(cache_dir, "p")
+    vim.fn.mkdir(data_dir, "p")
 
-	local url = "https://fennel-lang.org/downloads/fennel-" .. fennel_version .. ".lua"
-	print("Downloading Fennel compiler...")
-	local output = vim.fn.system({"curl", "-L", url, "-o", fennel_temp_path})
-	if vim.v.shell_error ~= 0 then
-		vim.notify("Fennel download failed:\n" .. output, vim.log.levels.ERROR)
-		return nil
-	end
-	
-	local success, err = os.rename(fennel_temp_path, fennel_path)
-        if not success then
-            vim.notify("Download success but failed to move file: " .. err, vim.log.levels.ERROR)
-            return nil
-        end
-	print("Fennel compiler download success!")
+    local url = "https://fennel-lang.org/downloads/fennel-" .. fennel_version .. ".lua"
+    print("Downloading Fennel compiler...")
+    local output = vim.fn.system({ "curl", "-L", url, "-o", fennel_temp_path })
+    if vim.v.shell_error ~= 0 then
+        vim.notify("Fennel download failed:\n" .. output, vim.log.levels.ERROR)
+        return nil
+    end
+
+    local success, err = os.rename(fennel_temp_path, fennel_path)
+    if not success then
+        vim.notify("Download success but failed to move file: " .. err, vim.log.levels.ERROR)
+        return nil
+    end
+    print("Fennel compiler download success!")
 end
 
 local fennel = dofile(fennel_path)
 
 -- 配置 Fennel 搜索路径
 local fnl_cfg_path = vim.fs.joinpath(config_dir, "fnl")
-fennel['path']= vim.fs.joinpath(fnl_cfg_path, "?.fnl") .. ";" .. vim.fs.joinpath(fnl_cfg_path, "?", "init.fnl")
+fennel['path'] = vim.fs.joinpath(fnl_cfg_path, "?.fnl") .. ";" .. vim.fs.joinpath(fnl_cfg_path, "?", "init.fnl")
 fennel['macro-path'] = fennel.path
 
 -- 注册 Fennel 加载器

@@ -94,6 +94,25 @@
 (set vim.g.mapleader " ")
 (set vim.g.maplocalleader "\\")
 ;; 1. 基础操作
+(vim.keymap.set "n" "<C-j>" "j" {:silent true})
+(vim.keymap.set "n" "<C-k>" "k" {:silent true})
+
+(vim.keymap.set "n" "j" "v:count == 0 ? 'gj' : 'j'" {:expr true :silent true})
+(vim.keymap.set "n" "k" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
+(vim.keymap.set "n" "<Up>" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
+(vim.keymap.set "n" "<Down>" "v:count == 0 ? 'gj' : 'j'" {:expr true :silent true})
+(vim.keymap.set "v" "j" "v:count == 0 ? 'gj' : 'j'" {:expr true :silent true})
+(vim.keymap.set "v" "k" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
+(vim.keymap.set "v" "<Up>" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
+(vim.keymap.set "v" "<Down>" "v:count == 0 ? 'gj' : 'j'" {:expr true :silent true})
+(vim.keymap.set "i" "<C-j>" "<C-o>gj" {:silent true})
+(vim.keymap.set "i" "<C-k>" "<C-o>gk" {:silent true})
+(vim.keymap.set "i" "<C-h>" "<C-o>h" {:silent true})
+(vim.keymap.set "i" "<C-l>" "<C-o>l" {:silent true})
+(vim.keymap.set "i" "<Up>" "<C-o>gk" {:silent true})
+(vim.keymap.set "i" "<Down>" "<C-o>gj" {:silent true})
+
+
 (vim.keymap.set "i" "jj" "<ESC>" {:silent true})
 (vim.keymap.set "n" "<leader>w" vim.cmd.w {:desc "Save"})
 (vim.keymap.set "n" "<leader>q" vim.cmd.q {:desc "Quit"})
@@ -259,7 +278,8 @@
     :keys [(mixed-map :iota "<leader>e" :iota "<cmd>NvimTreeToggle<cr>" :desc "Toggle Explorer")]
     :opts {:view {:relativenumber true}
            :renderer {:group_empty true}
-           :filters {:dotfiles false}
+           :git {:enable true :ignore false}
+           :filters {:dotfiles false :git_ignored false}
            :sync_root_with_cwd true
            :respect_buf_cwd true
            :update_focused_file {:enable true :update_root true}}))

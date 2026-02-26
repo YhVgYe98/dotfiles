@@ -1,31 +1,22 @@
 # proxy setting
-# special for wsl
-alias clashon='\
-    export ALL_PROXY=http://127.0.0.1:7890; \
-    export HTTP_PROXY=http://127.0.0.1:7890; \
-    export HTTPS_PROXY=http://127.0.0.1:7890; \
-    export all_proxy=http://127.0.0.1:7890; \
-    export http_proxy=http://127.0.0.1:7890; \
-    export https_proxy=http://127.0.0.1:7890; \
-    export NO_PROXY=127.0.0.1,localhost; \
-    export no_proxy=127.0.0.1,localhost; \
-'
-alias clashoff='unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy'
-if [ $WSL_DISTRO_NAME ];then
-    # TUN mode now 
-    # proxy_addr="http://$(ip route show | grep -i default | awk '{print $3}'):7890"
-    # export ALL_PROXY=$proxy_addr
-    # export HTTP_PROXY=$proxy_addr
-    # export HTTPS_PROXY=$proxy_addr
-    # export all_proxy=$proxy_addr
-    # export http_proxy=$proxy_addr
-    # export https_proxy=$proxy_addr
-    # export NO_PROXY=127.0.0.1,localhost
-    # export no_proxy=127.0.0.1,localhost
-else
-    clashon
-fi
-
+# wsl need mirror net mode
+function clashon() {
+    local proxy_ip="127.0.0.1"
+    local proxy_port="7890"
+    export ALL_PROXY=http://${proxy_ip}:${proxy_port}
+    export HTTP_PROXY=http://${proxy_ip}:${proxy_port}
+    export HTTPS_PROXY=http://${proxy_ip}:${proxy_port}
+    export all_proxy=http://${proxy_ip}:${proxy_port}
+    export http_proxy=http://${proxy_ip}:${proxy_port}
+    export https_proxy=http://${proxy_ip}:${proxy_port}
+    export NO_PROXY=127.0.0.1,localhost,::1
+    export no_proxy=127.0.0.1,localhost,::1
+    echo "Proxy set to http://${proxy_ip}:${proxy_port}"
+}
+function clashoff() {
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
+    echo "Proxy settings cleared."
+}
 
 alias vim='nvim'
 alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'
@@ -33,10 +24,4 @@ alias tmuxa='tmux new-session -A -s main'
 
 export GPG_TTY=$(tty)
 
-
-# auto open tmux
-# if ! { [[ -n "$TMUX" ]] && [[ "$TERM" =~ "tmux.*|screen.*" ]]; } && type tmux >/dev/null 2>/dev/null; then
-#     tmux new-session -A -s ${USER}
-# fi
-
-export GOPROXY=https://mirrors.aliyun.com/goproxy/
+export GOPROXY=https://goproxy.cn,direct

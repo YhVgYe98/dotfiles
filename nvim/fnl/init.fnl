@@ -302,6 +302,46 @@
                         (fn [server-name]
                             ((. (. lspconfig server-name) :setup) {: capabilities}))]})))))
 
+
+;;;;;;;;;;;;;; DAP 配置 ;;;;;;;;;;;;;;
+(table.insert PKG (mixed-map
+    :iota "mfussenegger/nvim-dap"
+    :event "VeryLazy"
+    :dependencies ["rcarriga/nvim-dap-ui" "nvim-neotest/nvim-nio" "williamboman/mason.nvim" "jay-babu/mason-nvim-dap.nvim"]
+    :config (lambda []
+              (let [dap (require :dap)
+                    dapui (require :dapui)
+                    mason (require :mason)
+                    dap-mason (require :mason-nvim-dap)]
+                (mason.setup)
+                (dap-mason.setup
+                  {:ensure_installed ["python"]
+                   :automatic_installation true
+                   :handlers [
+                     (lambda [config]
+                             (let [{: default_setup} (require :mason-nvim-dap)] (default_setup config)))]})
+                (dapui.setup)
+                (vim.keymap.set "n" "<F5>" dap.continue {:desc "Debug: Start/Continue"})
+                (vim.keymap.set "n" "<F10>" dap.step_over {:desc "Debug: Debug: Step Over"})
+                (vim.keymap.set "n" "<F11>" dap.step_into {:desc "Debug: Step Into"})
+                (vim.keymap.set "n" "<F12>" dap.step_out {:desc "Debug: Step Out"})
+                (vim.keymap.set "n" "<leader>b" dap.toggle_breakpoint {:desc "Debug: Toggle Breakpoint"})
+                (vim.keymap.set "n" "<leader>B" (lambda [] (dap.set_breakpoint (vim.fn.input "Breakpoint condition: "))) {:desc "Debug: Set Conditional Breakpoint"})
+                (vim.keymap.set "n" "<leader>du" dapui.toggle {:desc "Debug: Toggle UI"})
+                (tset dap.listeners.after.event_initialized :dapui_config (lambda [] (dapui.open)))
+                (tset dap.listeners.before.event_initialized :dapui_config (lambda [] (dapui.close)))
+                (tset dap.listeners.before.event_exited :dapui_config (lambda [] (dapui.close)))
+                (vim.api.nvim_set_hl 0 "DapRed" {:fg "#f43f5e" :italic false})
+                (vim.api.nvim_set_hl 0 "DapYellow" {:fg "#f59e0b" :italic false})
+                (vim.api.nvim_set_hl 0 "DapBlue" {:fg "#3b82f6" :italic false})
+                (vim.api.nvim_set_hl 0 "DapGreen" {:fg "#10b981" :italic false})
+                (vim.api.nvim_set_hl 0 "DapGray" {:fg "#9ca3af" :italic false})
+                (vim.fn.sign_define "DapBreakpoint" {:text "" :texthl "DapRed" :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointCondition" {:text "" :texthl "DapYellow" :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointRejected" {:text "" :texthl "DapGray" :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointPoint" {:text "" :texthl "DapBlue" :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapStopped" {:text "󰁕" :texthl "DapGreen" :linehl "" :numhl ""})))))
+
 ;;;;;;;;;;;;;; 自动补全 ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
     :iota "L3MON4D3/LuaSnip"

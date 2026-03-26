@@ -90,6 +90,8 @@
 
     :exrc true)
 
+(vim.cmd "aunmenu PopUp.How-to\\ disable\\ mouse")
+(vim.cmd "aunmenu PopUp.-2-")
 ;;;;;;;;; KEYMAPS ;;;;;;;;;;;
 (set vim.g.mapleader " ")
 (set vim.g.maplocalleader "\\")
@@ -307,7 +309,7 @@
 (table.insert PKG (mixed-map
     :iota "mfussenegger/nvim-dap"
     :event "VeryLazy"
-    :dependencies ["rcarriga/nvim-dap-ui" "nvim-neotest/nvim-nio" "williamboman/mason.nvim" "jay-babu/mason-nvim-dap.nvim"]
+    :dependencies ["rcarriga/nvim-dap-ui" "nvim-neotest/nvim-nio" "williamboman/mason.nvim" "jay-babu/mason-nvim-dap.nvim" "nvim-telescope/telescope-dap.nvim"]
     :config (lambda []
               (let [dap (require :dap)
                     dapui (require :dapui)
@@ -317,9 +319,13 @@
                 (dap-mason.setup
                   {:ensure_installed ["python"]
                    :automatic_installation true
-                   :handlers [
-                     (lambda [config]
-                             (let [{: default_setup} (require :mason-nvim-dap)] (default_setup config)))]})
+                   :handlers {
+                     1 (lambda [config]
+                         (let [{: default_setup} (require :mason-nvim-dap)] (default_setup config)))
+                     :python (lambda [config]
+                         (each [_ c (ipairs config.configurations)]
+                           (set c.justMyCode false)) ; toggle when need
+                         (let [{: default_setup} (require :mason-nvim-dap)] (default_setup config)))}}) 
                 (dapui.setup)
                 (vim.keymap.set "n" "<F5>" dap.continue {:desc "Debug: Start/Continue"})
                 (vim.keymap.set "n" "<F10>" dap.step_over {:desc "Debug: Debug: Step Over"})
@@ -328,6 +334,7 @@
                 (vim.keymap.set "n" "<leader>b" dap.toggle_breakpoint {:desc "Debug: Toggle Breakpoint"})
                 (vim.keymap.set "n" "<leader>B" (lambda [] (dap.set_breakpoint (vim.fn.input "Breakpoint condition: "))) {:desc "Debug: Set Conditional Breakpoint"})
                 (vim.keymap.set "n" "<leader>du" dapui.toggle {:desc "Debug: Toggle UI"})
+                (vim.keymap.set "n" "<leader>fb" "<cmd> Telescope dap list_breakpoints<CR>" {:desc "Telescope: View Breakpoints"})
                 (tset dap.listeners.after.event_initialized :dapui_config (lambda [] (dapui.open)))
                 (tset dap.listeners.before.event_initialized :dapui_config (lambda [] (dapui.close)))
                 (tset dap.listeners.before.event_exited :dapui_config (lambda [] (dapui.close)))
@@ -383,7 +390,10 @@
 
 ;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
 ;; 自动配对括号
-(table.insert PKG (mixed-map :iota "windwp/nvim-autopairs" :event "InsertEnter" :opts {}))
+; (table.insert PKG (mixed-map
+;     :iota "windwp/nvim-autopairs"
+;     :event "InsertEnter"
+;     :opts {:enable_moveright false}))
 ;; Git 状态
 (table.insert PKG (mixed-map :iota "lewis6991/gitsigns.nvim" :event "VeryLazy" :opts {}))
 

@@ -139,6 +139,10 @@
 
 (vim.keymap.set "n" "<A-z>" "<cmd>set wrap!<CR>" {:desc "Toggle line wrap"})
 
+;; 搜索优化
+(vim.keymap.set "n" "*" "*N" {:noremap true :silent true})
+(vim.keymap.set "n" "#" "#N" {:noremap true :silent true})
+
 ;; LSP 快捷键
 (vim.api.nvim_create_autocmd "LspAttach" {
     :group (vim.api.nvim_create_augroup :UserLspConfig {})
@@ -232,11 +236,12 @@
     :iota "catppuccin/nvim"
     :name "catppuccin"
     :priority 1000
+    :lazy false
     :config (lambda [] 
               (vim.cmd.colorscheme "catppuccin-mocha"))))
 (table.insert PKG (mixed-map
     :iota "nvim-lualine/lualine.nvim"
-    :opts {:options {:theme "catppuccin"
+    :opts {:options {:theme "auto"
                      :component_separators "|"
                      :section_separators ""}}))
 (table.insert PKG (mixed-map

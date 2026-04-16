@@ -347,10 +347,10 @@
                 (vim.api.nvim_set_hl 0 "DapBlue"   {:fg "#3b82f6" :italic false})
                 (vim.api.nvim_set_hl 0 "DapGreen"  {:fg "#10b981" :italic false})
                 (vim.api.nvim_set_hl 0 "DapGray"   {:fg "#9ca3af" :italic false})
-                (vim.fn.sign_define "DapBreakpoint"          {:text ""   :texthl "DapRed"    :linehl "" :numhl ""})
-                (vim.fn.sign_define "DapBreakpointCondition" {:text ""   :texthl "DapYellow" :linehl "" :numhl ""})
-                (vim.fn.sign_define "DapBreakpointRejected"  {:text ""   :texthl "DapGray"   :linehl "" :numhl ""})
-                (vim.fn.sign_define "DapBreakpointPoint"     {:text ""   :texthl "DapBlue"   :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpoint"          {:text ""   :texthl "DapRed"    :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointCondition" {:text ""   :texthl "DapYellow" :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointRejected"  {:text ""   :texthl "DapGray"   :linehl "" :numhl ""})
+                (vim.fn.sign_define "DapBreakpointPoint"     {:text ""   :texthl "DapBlue"   :linehl "" :numhl ""})
                 (vim.fn.sign_define "DapStopped"             {:text "󰁕" :texthl "DapGreen"  :linehl "" :numhl ""}))))
 
 ;;;;;;;;;;;;;; 自动补全 ;;;;;;;;;;;;;;

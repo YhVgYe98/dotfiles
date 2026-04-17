@@ -38,9 +38,6 @@
           (set i (+ i 2))))
       out-tbl)))
 
-(lambda req-call [mod func ...]
-  ((. (require mod) func) ...))
-
 (lambda get-path [tbl path]
   (var curr tbl)
   (each [k (path:gmatch "[^%.]+")]
@@ -196,12 +193,12 @@
     :branch "main"
     :init #(do
              (let [ensure-installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
-                 already-installed (req-call :nvim-treesitter.config :get_installed)
+                 already-installed (call-at :nvim-treesitter.config :get_installed)
                  to-install (-> (vim.iter ensure-installed)
                                 (: :filter #(not (vim.tbl_contains already-installed $1)))
                                 (: :totable))]
               (when (> (length to-install) 0)
-                (req-call :nvim-treesitter :install to-install)))
+                (call-at :nvim-treesitter :install to-install)))
              (vim.api.nvim_create_autocmd "FileType" {
                 :callback #(do (pcall vim.treesitter.start) (set vim.bo.indentexpr "v:lua.require'nvim-treesitter'.indentexpr()"))}))))
 
@@ -277,17 +274,24 @@
     :opts {}))
 
 ;;;;;;;;;;;;;; Nvim-Tree ;;;;;;;;;;;;;;
+; (table.insert PKG (mixed-map
+;     :iota "nvim-tree/nvim-tree.lua"
+;     :event "VeryLazy"
+;     :keys [(mixed-map :iota "<leader>e" :iota "<cmd>NvimTreeToggle<cr>" :desc "Toggle Explorer")]
+;     :opts {:view {:relativenumber true}
+;            :renderer {:group_empty true}
+;            :git {:enable true :ignore false}
+;            :filters {:dotfiles false :git_ignored false}
+;            :sync_root_with_cwd true
+;            :respect_buf_cwd true
+;            :update_focused_file {:enable true :update_root true}}))
+
 (table.insert PKG (mixed-map
-    :iota "nvim-tree/nvim-tree.lua"
-    :event "VeryLazy"
-    :keys [(mixed-map :iota "<leader>e" :iota "<cmd>NvimTreeToggle<cr>" :desc "Toggle Explorer")]
-    :opts {:view {:relativenumber true}
-           :renderer {:group_empty true}
-           :git {:enable true :ignore false}
-           :filters {:dotfiles false :git_ignored false}
-           :sync_root_with_cwd true
-           :respect_buf_cwd true
-           :update_focused_file {:enable true :update_root true}}))
+    :iota "stevearc/oil.nvim"
+    :lazy false
+    :dependencies ["nvim-mini/mini.icons"]
+    :keys [(mixed-map :iota "-" :iota "<cmd>Oil<cr>" :desc "Open parent directory")]
+    :config #(call-at :oil :setup)))
 
 ;;;;;;;;;;;;;; LSP ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map

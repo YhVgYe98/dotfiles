@@ -105,8 +105,6 @@
 (set vim.g.mapleader " ")
 (set vim.g.maplocalleader "\\")
 
-(vim.keymap.set "n" "<C-j>" "j" {:silent true})
-(vim.keymap.set "n" "<C-k>" "k" {:silent true})
 (vim.keymap.set "n" "j" "v:count == 0 ? 'gj' : 'j'" {:expr true :silent true})
 (vim.keymap.set "n" "k" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
 (vim.keymap.set "n" "<Up>" "v:count == 0 ? 'gk' : 'k'" {:expr true :silent true})
@@ -214,7 +212,7 @@
              :desc "Toggle outline")]
     :opts {}
     :config #(call-at :outline :setup
-                {:providers {:periority ["lsp" "markdown" "treesitter"]}})))
+                {:providers {:priority ["lsp" "markdown" "treesitter"]}})))
 
 ;;;;;;;;;;;; which-key ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
@@ -289,9 +287,11 @@
 (table.insert PKG (mixed-map
     :iota "stevearc/oil.nvim"
     :lazy false
-    :dependencies ["nvim-mini/mini.icons"]
+    :dependencies ["nvim-mini/mini.icons" "nvim-tree/nvim-web-devicons"]
     :keys [(mixed-map :iota "-" :iota "<cmd>Oil<cr>" :desc "Open parent directory")]
-    :config #(call-at :oil :setup)))
+    :config #(call-at :oil :setup {
+        :default_file_explorer true
+        :columns ["permissions" "size" "mtime" "icon"]})))
 
 ;;;;;;;;;;;;;; LSP ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
@@ -343,9 +343,9 @@
                 (vim.keymap.set "n" "<leader>du" dapui.toggle {:desc "Debug: Toggle UI"})
                 (vim.keymap.set "n" "<leader>fb" "<cmd>Telescope dap list_breakpoints<CR>"
                   {:desc "Telescope: View Breakpoints"})
-                (tset dap.listeners.after.event_initialized  :dapui_config #(dapui.open))
-                (tset dap.listeners.before.event_initialized :dapui_config #(dapui.close))
-                (tset dap.listeners.before.event_exited      :dapui_config #(dapui.close))
+                (tset dap.listeners.after.event_initialized :dapui_config #(dapui.open))
+                (tset dap.listeners.before.event_terminated :dapui_config #(dapui.close))
+                (tset dap.listeners.before.event_exited     :dapui_config #(dapui.close))
                 (vim.api.nvim_set_hl 0 "DapRed"    {:fg "#f43f5e" :italic false})
                 (vim.api.nvim_set_hl 0 "DapYellow" {:fg "#f59e0b" :italic false})
                 (vim.api.nvim_set_hl 0 "DapBlue"   {:fg "#3b82f6" :italic false})

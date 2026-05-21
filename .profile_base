@@ -11,12 +11,13 @@ function clashon() {
     export https_proxy=http://${proxy_ip}:${proxy_port}
     export NO_PROXY=127.0.0.1,localhost,::1
     export no_proxy=127.0.0.1,localhost,::1
-    echo "Proxy set to http://${proxy_ip}:${proxy_port}"
+#    echo "Proxy set to http://${proxy_ip}:${proxy_port}"
 }
 function clashoff() {
     unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy NO_PROXY no_proxy
     echo "Proxy settings cleared."
 }
+clashon
 
 alias vim='nvim'
 alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'

@@ -19,7 +19,9 @@ function clashoff() {
 }
 clashon
 
+export EDITOR='nvim'
 alias vim='nvim'
+alias vi='nvim'
 alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'
 alias tmuxa='tmux new-session -A -s main'
 

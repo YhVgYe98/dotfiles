@@ -16,10 +16,11 @@ tmux
 btop
 git
 ntfs-3g
-exfat-utils
+exfatprogs
 dosfstools
 openssh
 rsync
+fd
 fzf
 ripgrep
 
@@ -65,6 +66,7 @@ ark
 kdeconnect
 gwenview
 partitionmanager
+okular
 
 ### login manager
 sddm

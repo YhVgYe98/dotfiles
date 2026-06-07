@@ -10,7 +10,7 @@
 + bluetooth
 + pipewire
 + printer service
-+ power-profiles-daemon
++ power-profiles-daemon (tlp tlp-pd for laptop)
 + firewalld
 + networkmanager+iwd
 

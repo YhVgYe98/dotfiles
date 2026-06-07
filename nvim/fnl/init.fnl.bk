@@ -446,25 +446,6 @@
 ;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map :iota "lewis6991/gitsigns.nvim" :event "VeryLazy" :opts {}))
 
-;; tmux-send
-(table.insert PKG (mixed-map
-    :iota "kiyoon/tmux-send.nvim"
-    :event "VeryLazy"
-    :keys [(mixed-map
-             :iota "<leader>-"
-             :iota #(do
-                      (call-at :tmux_send :send_to_pane)
-                      (vim.api.nvim_feedkeys (vim.api.nvim_replace_termcodes "<esc>" true false true) "x" true))
-             :mode [:n :x]
-             :desc "Send to tmux pane")
-           (mixed-map
-             :iota "<leader>_"
-             :iota #(do
-                      (call-at :tmux_send :send_to_pane {:add_newline false})
-                      (vim.api.nvim_feedkeys (vim.api.nvim_replace_termcodes "<esc>" true false true) "x" true))
-             :mode [:n :x]
-             :desc "Send to tmux pane (plain)")]))
-
 ;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
     :iota "lervag/vimtex"

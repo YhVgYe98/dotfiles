@@ -1,6 +1,6 @@
-;; -*- no-byte-compile: t; lexical-binding: t; -*-
+;;  -*- lexical-binding: t; -*-
 
-;;;;;;;;;;;; basic settings ;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;; basic settings ;;;;;;;;;;;;;;;;;;;;;
 (setq inhibit-startup-screen 1)
 (when (fboundp 'tool-bar-mode)
   (tool-bar-mode 0))
@@ -34,15 +34,17 @@
         tab-mark))
 (global-whitespace-mode 1)
 
-
-
 ;;;;;;;;;;;;;;;; font ;;;;;;;;;;;;;;;;;;;;;;;
-(if (display-graphic-p)
-    (progn
-      (set-face-attribute 'default nil
-			  :font (font-spec :family "FiraMono Nerd Font" :size 33))
-      (set-fontset-font t 'han (font-spec :family "等线"))))
-
+(defun my/apply-fonts ()
+  "Apply fonts to the selected frame."
+  (when (display-graphic-p)
+    (set-frame-font "FiraCode Nerd Font Mono-14" nil t)
+    (set-fontset-font t 'han (font-spec :family "Noto Sans CJK SC" ))))
+(my/apply-fonts)                       ; non-daemon: initial frame
+(add-hook 'after-make-frame-functions
+          (lambda (frame)
+            (with-selected-frame frame
+              (my/apply-fonts))))
 
 ;;;;;;;;;;;;;; custom ;;;;;;;;;;;;;;;;;;;;;
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
@@ -95,12 +97,16 @@
 
 
 ;;;;;;;;;;;;;;; theme ;;;;;;;;;;;;;;;;;;;;;
-;(use-package atom-one-dark-theme
-;  :config
-;  (load-theme 'atom-one-dark t))
-(use-package modus-themes
+(use-package catppuccin-theme
+  :init
+  (setq catppuccin-flavor 'mocha)
   :config
-  (load-theme 'modus-vivendi t))
+  (load-theme 'catppuccin :no-confirm))
+
+;;;;;;;;;;;;;;; dired ;;;;;;;;;;;;;;;;;;;;;
+(use-package nerd-icons-dired
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
 
 
 ;;;;;;;;;;;;;; input ;;;;;;;;;;;;;;;;;;;;;;
@@ -113,27 +119,44 @@
 
 (use-package evil
   :init
-  (setq evil-want-C-u-scroll t
-	evil-undo-system 'undo-redo)
+  (setq evil-want-keybinding nil          ; 必须：让 evil-collection 接管键盘映射
+        evil-want-C-u-scroll t
+        evil-undo-system 'undo-redo)
   :config (evil-mode 1))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Evil-collection —— 为 magit/dired/diff-hl 等包自动配置 evil 风格快捷键
+(use-package evil-collection
+  :after evil
+  :config (evil-collection-init))
 
 
+
+;;;;;;;;;;;;; editing enhancements ;;;;;;;;;;;;;;;
+;; 彩虹括号 —— 嵌套括号按深度分色，肉眼分辨层级，Lisp/JSON/JS 必备
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+
+;;;;;;;;;;;;; minibuffer completion ;;;;;;;;;;;;;;;
+;; 架构：Vertico（竖排面板）→ Marginalia（候选注释）→ Orderless（灵活匹配）→ Consult（增强命令）
+
+;; 竖排补全面板 —— 让 minibuffer 候选列表纵向展示，支持多行、预览
 (use-package vertico
   :init (vertico-mode 1))
 
-
+;; 富注释 —— 为补全候选添加文件大小/模式/函数签名等旁注信息
 (use-package marginalia
   :after vertico
   :init (marginalia-mode 1))
 
-
+;; 无序匹配 —— 输入多个关键词（空格分隔），任意顺序都能命中
 (use-package orderless
   :custom
   (completion-styles '(orderless basic))
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
-
+;; 咨询增强 —— 为 switch-buffer/goto-line/imenu/xref 等内置命令提供预览、分组、异步搜索
+;; consult-ripgrep 是项目级全文搜索的入口
 (use-package consult
   :bind (([remap switch-to-buffer] . consult-buffer)
          ([remap switch-to-buffer-other-window] . consult-buffer-other-window)
@@ -149,43 +172,63 @@
         xref-show-definitions-function #'consult-xref))
 
 
+
+;; 动作菜单 —— 对任意补全候选按 C-. 弹出操作菜单（删除/重命名/打开外部等）
+;; embark-consult 为 consult 的候选提供了专属动作（如对搜索结果批量编辑）
+(use-package embark
+  :bind (("C-." . embark-act)
+         ("C-;" . embark-dwim))
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command))
+
+(use-package embark-consult)
+
+;;;;;;;;;;;;; in-buffer completion ;;;;;;;;;;;;;;;;;;
+;; 架构：Corfu（buffer 内弹出面板）→ Cape（补全后端）→ Corfu-terminal（终端兼容）
+
+;; buffer 内补全弹出面板 —— 在光标位置弹出候选列表，类似 VSCode 的 IntelliSense
 (use-package corfu
   :init
   (global-corfu-mode)
   :custom
-  (corfu-auto t)                 ; 自动开启补全
-  (corfu-auto-delay 0.1)         ; 自动补全延迟
-  (corfu-auto-prefix 2)          ; 输入2个字符后开始补全
-  (corfu-cycle t)                ; 允许循环选择
-  (corfu-quit-no-match 'separator) ; 如果没有匹配项，自动退出
-  (corfu-preselect 'prompt)      ; 默认选中第一项，但允许直接回车输入当前内容
+  (corfu-auto t)                  ; 自动弹出
+  (corfu-auto-delay 0.1)          ; 输入停止 0.1 秒后弹出
+  (corfu-auto-prefix 2)           ; 至少输入 2 个字符才触发
+  (corfu-cycle t)                 ; 首尾循环
+  (corfu-quit-no-match 'separator) ; 无匹配时自动关闭
+  (corfu-preselect 'prompt)       ; 预选第一项但不抢占回车
   :bind
   (:map corfu-map
-        ("SPC" . corfu-insert-separator) ; 空格作为分隔符（配合orderless）
+        ("SPC" . corfu-insert-separator)  ; 空格=分隔符，配合 orderless 多词搜索
         ("TAB" . corfu-next)
         ([tab] . corfu-next)
         ("S-TAB" . corfu-previous)
         ([backtab] . corfu-previous)))
+
+;; 终端兼容 —— 在 TUI Emacs 中让 Corfu 使用子菜单位置而非悬浮 popup
 (use-package corfu-terminal
   :after corfu
   :unless (display-graphic-p)
   :config (corfu-terminal-mode 1))
-;; Corfu 扩展功能：文档弹窗
+
+;; 文档弹窗 —— 选中候选时在侧边弹出文档/签名（corfu 自带扩展，无需单独安装）
 (use-package corfu-popupinfo
-  :ensure nil ; corfu 自带
+  :ensure nil
   :after corfu
   :hook (corfu-mode . corfu-popupinfo-mode)
   :custom
-  (corfu-popupinfo-delay '(0.5 . 0.5)) ; 弹出延迟和隐藏延迟
+  (corfu-popupinfo-delay '(0.5 . 0.5))   ; (弹出延迟 . 隐藏延迟)
   (corfu-popupinfo-max-width 70)
   (corfu-popupinfo-max-height 20))
-;; 为 Corfu 添加图标 (需要安装 nerd-icons)
+
+;; 图标装饰 —— 在 Corfu 候选列表中为不同文件类型/函数/变量添加 Nerd Icon
 (use-package nerd-icons-corfu
   :after corfu
   :config
   (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
-;; 整合 Cape (Completion At Point Extensions)
-;; 允许在 Eglot 开启时，依然可以使用 dabbrev (当前buffer单词) 或 file (文件路径) 补全
+
+;; 补全后端扩展 —— 为 completion-at-point 额外注册 dabbrev（当前buffer单词）和 file（路径）后端
+;; 这样 Eglot 提供 LSP 补全的同时，还能回退到 buffer 单词和文件路径补全
 (use-package cape
   :init
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
@@ -193,26 +236,59 @@
   (add-to-list 'completion-at-point-functions #'cape-elisp-block))
 
 
+;;;;;;;;;;;;;;; LSP client ;;;;;;;;;;;;;;;;;;;;
+
+(use-package mason
+  :config
+  (mason-ensure))
+;; Eglot —— Emacs 内置 LSP 客户端，轻量、和 Emacs 原生能力深度整合
 (use-package eglot
-  :ensure t
   :hook
-  ((python-mode
-    c-mode
-    c++-mode
-    java-mode
-    js-mode
-    typescript-mode
-    rust-mode
-    go-mode
+  ;; 同时 hook 原生 mode 和 ts-mode：安装 tree-sitter 语法后走 ts-mode，
+  ;; 未安装则回退到原生 mode，eglot 都能正确启动
+  ((python-mode python-ts-mode
+    c-mode c-ts-mode
+    c++-mode c++-ts-mode
+    java-mode java-ts-mode
+    js-mode js-ts-mode
+    typescript-mode typescript-ts-mode
+    rust-mode rust-ts-mode
+    go-mode go-ts-mode
     web-mode) . eglot-ensure)
   :config
-  ;; 性能优化：减少事件缓冲
-  (setq eglot-events-buffer-size 0)
-  ;; 禁用 flymake 每次修改都检查（可选，如果觉得卡顿可以开启）
+  (setq eglot-events-buffer-size 0)        ; 关闭事件日志 buffer，节省内存
+  ;; 若保存时卡顿可开启下面这行，让 eglot 降低推送频率
   ;; (setq eglot-send-changes-idle-time 0.5)
   :bind
   (:map eglot-mode-map
-        ("C-c r" . eglot-rename)
-        ("C-c a" . eglot-code-actions)
-        ("C-c f" . eglot-format)))
+        ("C-c r" . eglot-rename)           ; 重命名符号
+        ("C-c a" . eglot-code-actions)     ; 代码动作（自动修复/重构）
+        ("C-c f" . eglot-format)))         ; 格式化
 
+;;;;;;;;;;;;; tree-sitter ;;;;;;;;;;;;;;;;;;;;
+;; treesit-auto —— 自动管理 tree-sitter grammar 和 mode 切换
+;; 首次打开文件时提示安装 grammar，已安装则自动切到 ts-mode，未安装则静默回退
+;; M-x treesit-auto-install-all 可一键安装全部 grammar
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)          ; 缺少 grammar 时弹提示询问
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all) ; 为 rust/go/toml 等无原生mode的语言注册 ts-mode
+  (global-treesit-auto-mode)
+  (setq treesit-font-lock-level 4))
+
+;;;;;;;;;;;;; version control ;;;;;;;;;;;;;;;;;;
+;; Magit —— Git 交互
+;; C-x g 打开 magit-status，? 查看所有快捷键
+(use-package magit
+  :bind ("C-x g" . magit-status))
+
+;; Diff-HL —— 行号区显示 Git 改动状态（新增/修改/删除）
+;; 独立于 magit 工作（底层用 vc-mode），magit hook 是额外增强
+(use-package diff-hl
+  :config
+  (global-diff-hl-mode)
+  :hook
+  ((magit-pre-refresh . diff-hl-magit-pre-refresh)
+   (magit-post-refresh . diff-hl-magit-post-refresh)
+   (vc-checkin . diff-hl-update)))

@@ -30,6 +30,7 @@ base package:
 + ripgrep
 + base-devel
 + less
++ reflector
 
 ## device
 

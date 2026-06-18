@@ -39,7 +39,7 @@
   "Apply fonts to the selected frame."
   (when (display-graphic-p)
     (set-frame-font "FiraCode Nerd Font Mono-14" nil t)
-    (set-fontset-font t 'han (font-spec :family "Noto Sans CJK SC" ))))
+    (set-fontset-font t 'han (font-spec :family "Noto Sans CJK SC"))))
 (my/apply-fonts)                       ; non-daemon: initial frame
 (add-hook 'after-make-frame-functions
           (lambda (frame)
@@ -70,7 +70,13 @@
 (defvar my-desktop-dir (expand-file-name "desktop-sessions/" user-emacs-directory))
 (unless (file-exists-p my-desktop-dir)
   (make-directory my-desktop-dir))
-(desktop-save-mode 1)
+;; Daemon-aware desktop restore: 等第一个 GUI frame 创建后再恢复桌面
+(if (daemonp)
+    (add-hook 'server-after-make-frame-hook
+              (lambda ()
+                (desktop-read my-desktop-dir)
+                (desktop-save-mode 1)))
+  (desktop-save-mode 1))
 (setq desktop-path (list my-desktop-dir))
 (setq desktop-dirname my-desktop-dir)
 (setq desktop-save t)
@@ -103,10 +109,10 @@
   :config
   (load-theme 'catppuccin :no-confirm))
 
+(use-package doom-modeline
+  :init (doom-modeline-mode 1))
 ;;;;;;;;;;;;;;; dired ;;;;;;;;;;;;;;;;;;;;;
-(use-package nerd-icons-dired
-  :hook
-  (dired-mode . nerd-icons-dired-mode))
+(setq dired-listing-switches "-alh")
 
 
 ;;;;;;;;;;;;;; input ;;;;;;;;;;;;;;;;;;;;;;
@@ -116,25 +122,71 @@
   (key-chord-mode 1)
   (key-chord-define evil-insert-state-map "jj" 'evil-normal-state))
 
-
 (use-package evil
   :init
   (setq evil-want-keybinding nil          ; 必须：让 evil-collection 接管键盘映射
+        evil-want-integration t
         evil-want-C-u-scroll t
         evil-undo-system 'undo-redo)
-  :config (evil-mode 1))
-
+  :config
+  (evil-mode 1)
+  (evil-set-leader 'normal (kbd "SPC"))
+  ;; ── leader keybindings ──
+  ;; 保存与退出
+  (evil-global-set-key 'normal (kbd "<leader>ww")  'save-buffer)
+  (evil-global-set-key 'normal (kbd "<leader>qq") 'save-buffers-kill-emacs)
+  ;; Buffer
+  (evil-global-set-key 'normal (kbd "<leader>bb") 'switch-to-buffer)
+  (evil-global-set-key 'normal (kbd "<leader>bB") 'ibuffer)
+  (evil-global-set-key 'normal (kbd "<leader>bd") 'kill-current-buffer)
+  ;; 窗口
+  (evil-global-set-key 'normal (kbd "<leader>wv") 'split-window-right)
+  (evil-global-set-key 'normal (kbd "<leader>ws") 'split-window-below)
+  (evil-global-set-key 'normal (kbd "<leader>wd") 'delete-window)
+  (evil-global-set-key 'normal (kbd "<leader>wo") 'delete-other-windows)
+  ;; Dired
+  (evil-global-set-key 'normal (kbd "<leader>dd") 'dired)
+  (evil-global-set-key 'normal (kbd "<leader>dj") 'dired-jump)
+  (evil-global-set-key 'normal (kbd "<leader>dD") 'dired-other-window)
+  ;; 查找
+  (evil-global-set-key 'normal (kbd "<leader>ff") 'consult-fd)
+  (evil-global-set-key 'normal (kbd "<leader>fd") 'consult-flymake)
+  (evil-global-set-key 'normal (kbd "<leader>fg") 'consult-ripgrep))
 ;; Evil-collection —— 为 magit/dired/diff-hl 等包自动配置 evil 风格快捷键
 (use-package evil-collection
   :after evil
-  :config (evil-collection-init))
+  :custom
+  (evil-collection-setup-minibuffer t)
+  :config
+  (evil-collection-init))
 
+;; Evil 增强 -- 注释操作符 gc
+(use-package evil-commentary
+  :after evil
+  :config (evil-commentary-mode 1))
+;; Evil 增强 -- 扩展 % 跳转配对
+(use-package evil-matchit
+  :config (global-evil-matchit-mode 1))
+
+(with-eval-after-load 'dired
+  (evil-define-key 'normal dired-mode-map (kbd "SPC") nil))
 
 
 ;;;;;;;;;;;;; editing enhancements ;;;;;;;;;;;;;;;
 ;; 彩虹括号 —— 嵌套括号按深度分色，肉眼分辨层级，Lisp/JSON/JS 必备
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
+
+
+;;;;;;;;;;;;; project management ;;;;;;;;;;;;;;;
+;; Projectile —— 项目管理：项目内文件搜索、切换、编译、测试
+(use-package projectile
+  :config
+  (projectile-mode 1)
+  :bind (:map projectile-mode-map
+              ("C-c p" . projectile-command-map))
+  :custom
+  (projectile-completion-system 'auto)) ; 自动适配 vertico/consult
 
 
 ;;;;;;;;;;;;; minibuffer completion ;;;;;;;;;;;;;;;
@@ -254,9 +306,12 @@
     typescript-mode typescript-ts-mode
     rust-mode rust-ts-mode
     go-mode go-ts-mode
+    fennel-mode fennel-ts-mode c           ; 当前无效
     web-mode) . eglot-ensure)
   :config
   (setq eglot-events-buffer-size 0)        ; 关闭事件日志 buffer，节省内存
+  (setq eglot-sync-connect 0)              ; 不阻塞 UI，LSP 异步连接
+  (setq eglot-autoshutdown t)              ; 关闭最后一个 buffer 时自动关闭 LSP server，节省内存
   ;; 若保存时卡顿可开启下面这行，让 eglot 降低推送频率
   ;; (setq eglot-send-changes-idle-time 0.5)
   :bind
@@ -292,3 +347,32 @@
   ((magit-pre-refresh . diff-hl-magit-pre-refresh)
    (magit-post-refresh . diff-hl-magit-post-refresh)
    (vc-checkin . diff-hl-update)))
+
+;;;;;;;;;;;;; debugger ;;;;;;;;;;;;;;;;;;;;
+;; Dape —— Debug Adapter Protocol 客户端，类似 VSCode 的调试体验
+;; 快捷键：M-x dape 启动调试，具体 language adapter 见 dape 文档
+(use-package dape
+  :config
+  ;; 默认从项目根目录启动 debug adapter
+  (add-to-list 'dape-cwd-fn 'project-root)
+  :bind
+  (:map dape-mode-map
+        ("<f5>" . dape)            ; 启动/继续
+        ("<f9>" . dape-breakpoint-toggle)  ; 断点切换
+        ("<f10>" . dape-next)      ; 单步跳过
+        ("<f11>" . dape-step-in))) ; 单步进入
+
+
+;;;;;;;;;;;;; python ;;;;;;;;;;;;;;;;;;;;
+(use-package pet
+  :config
+  (add-hook 'python-base-mode-hook 'pet-mode -10))
+
+
+;;;;;;;;;;;;; fennel ;;;;;;;;;;;;;;;;;;;;
+(use-package fennel-mode
+  :mode ("\\.fnl\\'" "\\.fnlm\\'" "/fennelrc\\'")
+
+  :hook
+  ((fennel-mode . eglot-ensure)))           ; 打开 .fnl 自动启动 eglot + fennel-ls
+

@@ -185,20 +185,11 @@
 
 ;;;;;;;;;; treesitter ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
-    :iota "nvim-treesitter/nvim-treesitter"
+    :iota "romus204/tree-sitter-manager.nvim"
     :lazy false
-    :build ":TSUpdate"
-    :branch "main"
-    :init #(do
-             (let [ensure-installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
-                 already-installed (call-at :nvim-treesitter.config :get_installed)
-                 to-install (-> (vim.iter ensure-installed)
-                                (: :filter #(not (vim.tbl_contains already-installed $1)))
-                                (: :totable))]
-              (when (> (length to-install) 0)
-                (call-at :nvim-treesitter :install to-install)))
-             (vim.api.nvim_create_autocmd "FileType" {
-                :callback #(do (pcall vim.treesitter.start) (set vim.bo.indentexpr "v:lua.require'nvim-treesitter'.indentexpr()"))}))))
+    :opts {:ensure_installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
+    :auto_install false      ;; 设为 true 可自动装缺失 parser
+    :highlight true}))       ;; 默认启用 treesitter 高亮
 
 (table.insert PKG (mixed-map
     :iota "nvim-treesitter/nvim-treesitter-textobjects"
@@ -256,7 +247,8 @@
              :desc "Toggle outline")]
     :opts {}
     :config #(call-at :outline :setup
-                {:providers {:priority ["lsp" "markdown" "treesitter"]}})))
+                {:providers {:priority ["lsp" "treesitter" "markdown"]}
+                 :outline_window {:auto_close true :auto_jump true}})))
 
 ;;;;;;;;;;;; which-key ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
@@ -283,26 +275,26 @@
                      :section_separators ""}}))
 
 (table.insert PKG (mixed-map
-    :iota "rcarriga/nvim-notify"
-    :opts {:timeout 3000
-           :stages "fade"}
-    :config (lambda [_ opts]
-              (call-at :notify :setup opts)
-              (set vim.notify (require :notify)))))
-
-(table.insert PKG (mixed-map
     :iota "folke/noice.nvim"
     :event "VeryLazy"
-    :dependencies ["MunifTanjim/nui.nvim" "rcarriga/nvim-notify"]
-    :opts {:lsp {:override {
-                    :vim.lsp.util.convert_input_to_markdown_lines true
-                    :vim.lsp.util.styled_parts true
-                    :cmp.entry.get_documentation true}}
-           :presets {:bottom_search true
-                     :command_palette true
-                     :long_message_to_split true
-                     :inc_rename false
-                     :lsp_doc_border true}}))
+    :dependencies ["MunifTanjim/nui.nvim"]
+    :opts {:cmdline {:enable true :view "cmdline"}
+           :popupmenu {:enable false}
+           :messages {:enable true
+                      :view "mini"
+                      :view_history "split"
+                      :view_error "mini"
+                      :view_warn "mini"
+                      :view_search "mini"}
+           :notify {:enable true :view "mini"}
+           :commands {:all {:view "split"}
+                      :history {:view "split"}
+                      :last {:view "mini"}
+                      :errors {:view "split"}} 
+           :lsp {:progress {:view "mini"} :message {:view "mini"}}
+           :presets {:bottom_search false
+                     :command_palette false
+                     :long_message_to_split true}}))
 
 ;;;;;;;;;;;;;; Telescope ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
@@ -315,19 +307,7 @@
            (mixed-map :iota "<leader>fh" :iota "<cmd>Telescope help_tags<cr>" :desc "Help Tags")]
     :opts {}))
 
-;;;;;;;;;;;;;; Nvim-Tree ;;;;;;;;;;;;;;
-; (table.insert PKG (mixed-map
-;     :iota "nvim-tree/nvim-tree.lua"
-;     :event "VeryLazy"
-;     :keys [(mixed-map :iota "<leader>e" :iota "<cmd>NvimTreeToggle<cr>" :desc "Toggle Explorer")]
-;     :opts {:view {:relativenumber true}
-;            :renderer {:group_empty true}
-;            :git {:enable true :ignore false}
-;            :filters {:dotfiles false :git_ignored false}
-;            :sync_root_with_cwd true
-;            :respect_buf_cwd true
-;            :update_focused_file {:enable true :update_root true}}))
-
+;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map
     :iota "stevearc/oil.nvim"
     :lazy false
@@ -406,8 +386,6 @@
     :iota "L3MON4D3/LuaSnip"
     :event "VeryLazy"))
 
-;; cmp / luasnip 在配置表内被大量引用（mapping、sources、snippet 等），
-;; 保持 let binding 比反复调用 req-at/call-at 更清晰
 (table.insert PKG (mixed-map
     :iota "hrsh7th/nvim-cmp"
     :event "VeryLazy"
@@ -445,25 +423,6 @@
 
 ;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
 (table.insert PKG (mixed-map :iota "lewis6991/gitsigns.nvim" :event "VeryLazy" :opts {}))
-
-;; tmux-send
-(table.insert PKG (mixed-map
-    :iota "kiyoon/tmux-send.nvim"
-    :event "VeryLazy"
-    :keys [(mixed-map
-             :iota "<leader>-"
-             :iota #(do
-                      (call-at :tmux_send :send_to_pane)
-                      (vim.api.nvim_feedkeys (vim.api.nvim_replace_termcodes "<esc>" true false true) "x" true))
-             :mode [:n :x]
-             :desc "Send to tmux pane")
-           (mixed-map
-             :iota "<leader>_"
-             :iota #(do
-                      (call-at :tmux_send :send_to_pane {:add_newline false})
-                      (vim.api.nvim_feedkeys (vim.api.nvim_replace_termcodes "<esc>" true false true) "x" true))
-             :mode [:n :x]
-             :desc "Send to tmux pane (plain)")]))
 
 ;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
 (table.insert PKG (mixed-map

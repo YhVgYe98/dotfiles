@@ -20,23 +20,14 @@
               (tset target k next-val)
               (set i (+ i 2))))))))
 
-(lambda mixed-map [...]
-  (let [args [...]
-        len (length args)]
-    (assert (= 0 (% len 2)) "mixed-map: 参数数量必须为偶数")
-    (let [out-tbl {}]
-      (var i 1)
-      (var iota-counter 1)
-      (while (< i len)
-        (let [k (. args i)
-              v (. args (+ i 1))]
-          (if (= k :iota)
-              (do
-                (tset out-tbl iota-counter v)
-                (set iota-counter (+ iota-counter 1)))
-              (tset out-tbl k v))
-          (set i (+ i 2))))
-      out-tbl)))
+(lambda mt [arr ...]
+    (let [keys [...]
+        n (length keys)]
+        (assert (= 0 (% n 2)) "参数数量必须为偶数")
+        (for [i 1 n 2]
+            (tset arr (. keys i) (. keys (+ i 1))))
+        arr))
+
 
 (lambda get-path [tbl path]
   (var curr tbl)
@@ -96,7 +87,9 @@
     :completeopt "menu,menuone,noselect,noinsert"
     :pumheight 10
     :shortmess :append "c"
-    :exrc true)
+    :exrc true
+    :list true
+    :listchars {:tab "»-" :trail "·" :nbsp "␣"})
 
 (vim.cmd "aunmenu PopUp.How-to\\ disable\\ mouse")
 (vim.cmd "aunmenu PopUp.-2-")
@@ -143,23 +136,6 @@
 (vim.keymap.set "n" "*" "*N" {:noremap true :silent true})
 (vim.keymap.set "n" "#" "#N" {:noremap true :silent true})
 
-(vim.api.nvim_create_autocmd "LspAttach" {
-    :group (vim.api.nvim_create_augroup :UserLspConfig {})
-    :callback (lambda [args]
-                (let [bufnr args.buf
-                      buf-map (lambda [mode lhs rhs desc]
-                                (vim.keymap.set mode lhs rhs {:buffer bufnr :silent true :desc desc}))]
-                  (buf-map :n "gd" vim.lsp.buf.definition "Goto Definition")
-                  (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
-                  (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
-                  (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
-                  (buf-map :n "gr" "<cmd>Telescope lsp_references<cr>" "Goto References")
-                  (buf-map :n "[d" vim.diagnostic.goto_prev "Prev Diagnostic")
-                  (buf-map :n "]d" vim.diagnostic.goto_next "Next Diagnostic")
-                  (buf-map :n "gl" #(vim.diagnostic.open_float) "Show Diagnostic Float")
-                  (buf-map :n "<leader>dl" #(vim.diagnostic.setloclist) "Diagnostic LocList")
-                  (buf-map :n "<leader>lf" vim.lsp.buf.format "Format file")))})
-
 ;;;;;;;;; PACKAGES ;;;;;;;;;;
 (local lazypath
        (.. (vim.fn.stdpath "data") "/lazy/lazy.nvim"))
@@ -183,99 +159,34 @@
 (vim.opt.rtp:prepend lazypath)
 (local PKG {})
 
-;;;;;;;;;; treesitter ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "romus204/tree-sitter-manager.nvim"
-    :lazy false
-    :opts {:ensure_installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
-    :auto_install false      ;; 设为 true 可自动装缺失 parser
-    :highlight true}))       ;; 默认启用 treesitter 高亮
-
-(table.insert PKG (mixed-map
-    :iota "nvim-treesitter/nvim-treesitter-textobjects"
-    :branch "main"
-    :init #(set vim.g.no_plugin_maps true)
-    :config #(let [select               (req-at :nvim-treesitter-textobjects.select :select_textobject)
-                   goto-next-start      (req-at :nvim-treesitter-textobjects.move :goto_next_start)
-                   goto-next-end        (req-at :nvim-treesitter-textobjects.move :goto_next_end)
-                   goto-previous-start  (req-at :nvim-treesitter-textobjects.move :goto_previous_start)
-                   goto-previous-end    (req-at :nvim-treesitter-textobjects.move :goto_previous_end)
-                   goto-next            (req-at :nvim-treesitter-textobjects.move :goto_next)
-                   goto-previous        (req-at :nvim-treesitter-textobjects.move :goto_previous)]
-                (call-at :nvim-treesitter-textobjects :setup {
-                    :select {
-                        :lookahead true
-                        :selection_modes {
-                            "@parameter.outer" "v"
-                            "@function.outer" "V"}
-                        :include_surrounding_whitespace false}
-                    :move {:set_jumps true}})
-                ;; --- selection textobjects (x, o) ---
-                (vim.keymap.set [:x :o] "am" #(select "@function.outer" "textobjects") {:desc "Select function outer"})
-                (vim.keymap.set [:x :o] "im" #(select "@function.inner" "textobjects") {:desc "Select function inner"})
-                (vim.keymap.set [:x :o] "ac" #(select "@class.outer" "textobjects") {:desc "Select class outer"})
-                (vim.keymap.set [:x :o] "ic" #(select "@class.inner" "textobjects") {:desc "Select class inner"})
-                (vim.keymap.set [:x :o] "as" #(select "@local.scope" "locals") {:desc "Select local scope"})
-                ;; --- move: goto next start (n, x, o) ---
-                (vim.keymap.set [:n :x :o] "]m" #(goto-next-start "@function.outer" "textobjects") {:desc "Next function start"})
-                (vim.keymap.set [:n :x :o] "]c" #(goto-next-start "@class.outer" "textobjects") {:desc "Next class start"})
-                (vim.keymap.set [:n :x :o] "]o" #(goto-next-start ["@loop.inner" "@loop.outer"] "textobjects") {:desc "Next loop start"})
-                (vim.keymap.set [:n :x :o] "]s" #(goto-next-start "@local.scope" "locals") {:desc "Next scope start"})
-                (vim.keymap.set [:n :x :o] "]z" #(goto-next-start "@fold" "folds") {:desc "Next fold start"})
-                ;; --- move: goto next end (n, x, o) ---
-                (vim.keymap.set [:n :x :o] "]M" #(goto-next-end "@function.outer" "textobjects") {:desc "Next function end"})
-                (vim.keymap.set [:n :x :o] "]C" #(goto-next-end "@class.outer" "textobjects") {:desc "Next class end"})
-                ;; --- move: goto previous start (n, x, o) ---
-                (vim.keymap.set [:n :x :o] "[m" #(goto-previous-start "@function.outer" "textobjects") {:desc "Previous function start"})
-                (vim.keymap.set [:n :x :o] "[c" #(goto-previous-start "@class.outer" "textobjects") {:desc "Previous class start"})
-                ;; --- move: goto previous end (n, x, o) ---
-                (vim.keymap.set [:n :x :o] "[M" #(goto-previous-end "@function.outer" "textobjects") {:desc "Previous function end"})
-                (vim.keymap.set [:n :x :o] "[C" #(goto-previous-end "@class.outer" "textobjects") {:desc "Previous class end"})
-                ;; --- move: goto next/previous (whichever closer) (n, x, o) ---
-                (vim.keymap.set [:n :x :o] "]d" #(goto-next "@conditional.outer" "textobjects") {:desc "Next conditional (closer)"})
-                (vim.keymap.set [:n :x :o] "[d" #(goto-previous "@conditional.outer" "textobjects") {:desc "Previous conditional (closer)"}))))
-
-;;;;;;;;;;; outline ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "hedyhli/outline.nvim"
-    :dependencies ["epheien/outline-treesitter-provider.nvim"]
-    :event "VeryLazy"
-    :cmd ["Outline" "OutlineOpen"]
-    :keys [(mixed-map
-             :iota "<leader>o"
-             :iota "<cmd>Outline<cr>"
-             :desc "Toggle outline")]
-    :opts {}
-    :config #(call-at :outline :setup
-                {:providers {:priority ["lsp" "treesitter" "markdown"]}
-                 :outline_window {:auto_close true :auto_jump true}})))
-
 ;;;;;;;;;;;; which-key ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "folke/which-key.nvim"
+(table.insert PKG (mt
+    ["folke/which-key.nvim"]
+    :lazy true
     :event "VeryLazy"
     :opts {}
-    :keys [(mixed-map
-        :iota "<leader>?"
-        :iota #(call-at :which-key :show {:global false})
-        :desc "Buffer Local Keymaps (which-key)")]))
+    :keys [(mt ["<leader>?" #(call-at :which-key :show {:global false})]
+           :desc "Buffer Local Keymaps (which-key)")]))
 
-;;;;;;;;;;;;;; UI 增强 ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "catppuccin/nvim"
+;;;;;;;;;;;;;; UI ;;;;;;;;;;;;;;
+(table.insert PKG (mt
+    ["catppuccin/nvim"]
     :name "catppuccin"
     :priority 1000
     :lazy false
     :config #(vim.cmd.colorscheme "catppuccin-mocha")))
 
-(table.insert PKG (mixed-map
-    :iota "nvim-lualine/lualine.nvim"
+(table.insert PKG (mt
+    ["nvim-lualine/lualine.nvim"]
+    :lazy true
+    :event "VeryLazy"
     :opts {:options {:theme "auto"
                      :component_separators "|"
                      :section_separators ""}}))
 
-(table.insert PKG (mixed-map
-    :iota "folke/noice.nvim"
+(table.insert PKG (mt
+    ["folke/noice.nvim"]
+    :lazy true
     :event "VeryLazy"
     :dependencies ["MunifTanjim/nui.nvim"]
     :opts {:cmdline {:enable true :view "cmdline"}
@@ -296,77 +207,145 @@
                      :command_palette false
                      :long_message_to_split true}}))
 
+;;;;;;;;;; treesitter ;;;;;;;;;;;;;;
+(table.insert PKG (mt
+    ["romus204/tree-sitter-manager.nvim"]
+    :lazy false
+    :opts {:ensure_installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
+    :auto_install false
+    :highlight true}))
+
+
+(table.insert PKG (mt
+    ["nvim-treesitter/nvim-treesitter-textobjects"]
+    :branch "main"
+    :lazy true
+    :init #(set vim.g.no_plugin_maps true)
+    :opts {:select {:lookahead true
+                    :selection_modes {"@parameter.outer" "v"
+                                      "@function.outer"  "V"}
+                    :include_surrounding_whitespace false}
+           :move {:set_jumps true}}
+    :keys (let [select              #(req-at :nvim-treesitter-textobjects.select :select_textobject)
+                goto-next-start     #(req-at :nvim-treesitter-textobjects.move :goto_next_start)
+                goto-next-end       #(req-at :nvim-treesitter-textobjects.move :goto_next_end)
+                goto-previous-start #(req-at :nvim-treesitter-textobjects.move :goto_previous_start)
+                goto-previous-end   #(req-at :nvim-treesitter-textobjects.move :goto_previous_end)
+                goto-next           #(req-at :nvim-treesitter-textobjects.move :goto_next)
+                goto-previous       #(req-at :nvim-treesitter-textobjects.move :goto_previous)]
+            [(mt ["am" #((select) "@function.outer" "textobjects")] :mode [:x :o] :desc "Select function outer")
+             (mt ["im" #((select) "@function.inner" "textobjects")] :mode [:x :o] :desc "Select function inner")
+             (mt ["ac" #((select) "@class.outer" "textobjects")] :mode [:x :o] :desc "Select class outer")
+             (mt ["ic" #((select) "@class.inner" "textobjects")] :mode [:x :o] :desc "Select class inner")
+             (mt ["as" #((select) "@local.scope" "locals")] :mode [:x :o] :desc "Select local scope")
+             ;; --- goto next start ---
+             (mt ["]m" #((goto-next-start) "@function.outer" "textobjects")] :mode [:n :x :o] :desc "Next function start")
+             (mt ["]c" #((goto-next-start) "@class.outer" "textobjects")] :mode [:n :x :o] :desc "Next class start")
+             (mt ["]o" #((goto-next-start) ["@loop.inner" "@loop.outer"] "textobjects")] :mode [:n :x :o] :desc "Next loop start")
+             (mt ["]s" #((goto-next-start) "@local.scope" "locals")] :mode [:n :x :o] :desc "Next scope start")
+             (mt ["]z" #((goto-next-start) "@fold" "folds")] :mode [:n :x :o] :desc "Next fold start")
+             ;; --- goto next end ---
+             (mt ["]M" #((goto-next-end) "@function.outer" "textobjects")] :mode [:n :x :o] :desc "Next function end")
+             (mt ["]C" #((goto-next-end) "@class.outer" "textobjects")] :mode [:n :x :o] :desc "Next class end")
+             ;; --- goto previous start ---
+             (mt ["[m" #((goto-previous-start) "@function.outer" "textobjects")] :mode [:n :x :o] :desc "Previous function start")
+             (mt ["[c" #((goto-previous-start) "@class.outer" "textobjects")] :mode [:n :x :o] :desc "Previous class start")
+             ;; --- goto previous end ---
+             (mt ["[M" #((goto-previous-end) "@function.outer" "textobjects")] :mode [:n :x :o] :desc "Previous function end")
+             (mt ["[C" #((goto-previous-end) "@class.outer" "textobjects")] :mode [:n :x :o] :desc "Previous class end")
+             ;; --- goto next/previous (closer) ---
+             (mt ["]d" #((goto-next) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Next conditional (closer)")
+             (mt ["[d" #((goto-previous) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Previous conditional (closer)")])))
+
 ;;;;;;;;;;;;;; Telescope ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "nvim-telescope/telescope.nvim"
-    :event "VeryLazy"
-    :dependencies ["nvim-lua/plenary.nvim"]
-    :keys [(mixed-map :iota "<leader>ff" :iota "<cmd>Telescope find_files<cr>" :desc "Find Files")
-           (mixed-map :iota "<leader>fg" :iota "<cmd>Telescope live_grep<cr>" :desc "Live Grep")
-           (mixed-map :iota "<leader>fb" :iota "<cmd>Telescope buffers<cr>" :desc "Buffers")
-           (mixed-map :iota "<leader>fh" :iota "<cmd>Telescope help_tags<cr>" :desc "Help Tags")]
-    :opts {}))
+(table.insert PKG (mt
+    ["nvim-telescope/telescope.nvim"]
+    :lazy true
+    :version "*"
+    :dependencies ["nvim-lua/plenary.nvim"
+                   (mt ["nvim-telescope/telescope-fzf-native.nvim"] :build "make")
+                   "nvim-tree/nvim-web-devicons"]
+    :cmd ["Telescope"]
+    :keys [(mt ["<leader>ff" "<cmd>Telescope find_files<cr>"] :desc "Find Files")
+           (mt ["<leader>fg" "<cmd>Telescope live_grep<cr>"] :desc "Live Grep")
+           (mt ["<leader>fb" "<cmd>Telescope buffers<cr>"] :desc "Buffers")
+           (mt ["<leader>fh" "<cmd>Telescope help_tags<cr>"] :desc "Help Tags")]
+    :opts {:defaults {:layout_strategy "vertical"
+                      :layout_config {:width 0.5 :preview_cutoff 1 :prompt_position "bottom"}
+                      :scroll_strategy "cycle"}}))
 
 ;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "stevearc/oil.nvim"
-    :lazy false
+(table.insert PKG (mt
+    ["stevearc/oil.nvim"]
+    :lazy true
     :dependencies ["nvim-mini/mini.icons" "nvim-tree/nvim-web-devicons"]
-    :keys [(mixed-map :iota "-" :iota "<cmd>Oil<cr>" :desc "Open parent directory")]
-    :config #(call-at :oil :setup {
-        :default_file_explorer true
-        :columns ["permissions" "size" "mtime" "icon"]})))
+    :cmd ["Oil"]
+    :keys [(mt ["-" "<cmd>Oil<cr>"] :desc "Open parent directory")]
+    :opts {:default_file_explorer true
+           :columns ["permissions" "size" "mtime" "icon"]}))
 
 ;;;;;;;;;;;;;; LSP ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "neovim/nvim-lspconfig"
+(table.insert PKG (mt
+    ["williamboman/mason-lspconfig.nvim"]
+    :lazy true
     :event "VeryLazy"
-    :dependencies ["williamboman/mason.nvim"
-                   "williamboman/mason-lspconfig.nvim"
-                   "hrsh7th/cmp-nvim-lsp"]
-    :config #(let [lspconfig    (require :lspconfig)
-                   capabilities (call-at :cmp_nvim_lsp :default_capabilities)]
-                (call-at :mason :setup)
-                (call-at :mason-lspconfig :setup
-                  {:ensure_installed ["lua_ls" "pyright" "clangd" "fennel_ls"]
-                   :handlers [(lambda [server-name]
-                                 ((. (. lspconfig server-name) :setup)
-                                  {: capabilities}))]}))))
+    :dependencies [(mt ["williamboman/mason.nvim"] :opts {})
+                   "neovim/nvim-lspconfig"]
+    :opts {:ensure_installed ["lua_ls" "pyright" "clangd" "fennel_ls"]}))
+
+
+(vim.api.nvim_create_autocmd "LspAttach" {
+    :group (vim.api.nvim_create_augroup :UserLspConfig {})
+    :callback (lambda [args]
+                (let [bufnr args.buf
+                      buf-map (lambda [mode lhs rhs desc]
+                                (vim.keymap.set mode lhs rhs {:buffer bufnr :silent true :desc desc}))]
+                  (buf-map :n "gd" vim.lsp.buf.definition "Goto Definition")
+                  (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
+                  (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
+                  (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
+                  (buf-map :n "gr" #(call-at :telescope.builtin :lsp_references) "Goto References")
+                  (buf-map :n "[d" vim.diagnostic.goto_prev "Prev Diagnostic")
+                  (buf-map :n "]d" vim.diagnostic.goto_next "Next Diagnostic")
+                  (buf-map :n "gl" #(vim.diagnostic.open_float) "Show Diagnostic Float")
+                  (buf-map :n "<leader>dl" #(vim.diagnostic.setloclist) "Diagnostic LocList")
+                  (buf-map :n "<leader>lf" vim.lsp.buf.format "Format file")))})
 
 ;;;;;;;;;;;;;; DAP ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "mfussenegger/nvim-dap"
-    :event "VeryLazy"
+(table.insert PKG (mt
+    ["jay-babu/mason-nvim-dap.nvim"]
+    :lazy true
+    :dependencies [(mt ["williamboman/mason.nvim"] :opts {})]
+    :opts {
+        :ensure_installed ["python"]
+        :automatic_installation true
+        :handlers (mt
+            [#(call-at :mason-nvim-dap :default_setup $)]
+            :python #(do
+                        (each [_ c (ipairs $.configurations)]
+                            (set c.justMyCode false))
+                        (call-at :mason-nvim-dap :default_setup $)))}))
+
+(table.insert PKG (mt
+    ["mfussenegger/nvim-dap"]
+    :lazy true
     :dependencies ["rcarriga/nvim-dap-ui"
                    "nvim-neotest/nvim-nio"
-                   "williamboman/mason.nvim"
                    "jay-babu/mason-nvim-dap.nvim"
-                   "nvim-telescope/telescope-dap.nvim"]
-    :config #(let [dap   (require :dap)
+                   "nvim-telescope/telescope-dap.nvim"
+                   "nvim-telescope/telescope.nvim"]
+    :keys [
+            (mt ["<F5>" #(call-at :dap :continue)] :mode [:n] :desc "Debug: Start/Continue")
+            (mt ["<F10>" #(call-at :dap :step_over)] :mode [:n] :desc "Debug: Step Over")
+            (mt ["<F11>" #(call-at :dap :step_into)] :mode [:n] :desc "Debug: Step Into")
+            (mt ["<F12>" #(call-at :dap :step_out)] :mode [:n] :desc "Debug: Step Out")
+            (mt ["<leader>b" #(call-at :dap :toggle_breakpoint)] :mode [:n] :desc "Debug: Toggle Breakpoint")
+            (mt ["<leader>B" #((call-at :dap :set_breakpoint) (vim.fn.input "Breakpoint condition: "))] :mode [:n] :desc "Debug: Set Conditional Breakpoint")
+            (mt ["<leader>du" #(call-at :dapui :toggle)] :mode [:n] :desc "Debug: Toggle UI")
+            (mt ["<leader>fb" #(call-at :telescope.dap :list_breakpoints)] :mode [:n] :desc "Telescope: View Breakpoints")]
+    :config #(let [dap (require :dap)
                     dapui (require :dapui)]
-                (call-at :mason :setup)
-                (call-at :mason-nvim-dap :setup
-                  {:ensure_installed ["python"]
-                   :automatic_installation true
-                   :handlers {
-                     1       (lambda [config]
-                               (call-at :mason-nvim-dap :default_setup config))
-                     :python (lambda [config]
-                               (each [_ c (ipairs config.configurations)]
-                                 (set c.justMyCode false))
-                               (call-at :mason-nvim-dap :default_setup config))}})
                 (dapui.setup)
-                (vim.keymap.set "n" "<F5>"  dap.continue        {:desc "Debug: Start/Continue"})
-                (vim.keymap.set "n" "<F10>" dap.step_over       {:desc "Debug: Step Over"})
-                (vim.keymap.set "n" "<F11>" dap.step_into       {:desc "Debug: Step Into"})
-                (vim.keymap.set "n" "<F12>" dap.step_out        {:desc "Debug: Step Out"})
-                (vim.keymap.set "n" "<leader>b" dap.toggle_breakpoint {:desc "Debug: Toggle Breakpoint"})
-                (vim.keymap.set "n" "<leader>B"
-                  #(dap.set_breakpoint (vim.fn.input "Breakpoint condition: "))
-                  {:desc "Debug: Set Conditional Breakpoint"})
-                (vim.keymap.set "n" "<leader>du" dapui.toggle {:desc "Debug: Toggle UI"})
-                (vim.keymap.set "n" "<leader>fb" "<cmd>Telescope dap list_breakpoints<CR>"
-                  {:desc "Telescope: View Breakpoints"})
                 (tset dap.listeners.after.event_initialized :dapui_config #(dapui.open))
                 (tset dap.listeners.before.event_terminated :dapui_config #(dapui.close))
                 (tset dap.listeners.before.event_exited     :dapui_config #(dapui.close))
@@ -382,13 +361,15 @@
                 (vim.fn.sign_define "DapStopped"             {:text "󰁕" :texthl "DapGreen"  :linehl "" :numhl ""}))))
 
 ;;;;;;;;;;;;;; 自动补全 ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "L3MON4D3/LuaSnip"
-    :event "VeryLazy"))
+(table.insert PKG (mt
+    ["L3MON4D3/LuaSnip"]
+    :lazy true
+    :run "make install_jsregexp"))
 
-(table.insert PKG (mixed-map
-    :iota "hrsh7th/nvim-cmp"
-    :event "VeryLazy"
+(table.insert PKG (mt
+    ["hrsh7th/nvim-cmp"]
+    :lazy true
+    :event "InsertEnter"
     :dependencies ["hrsh7th/cmp-nvim-lsp"
                    "hrsh7th/cmp-buffer"
                    "hrsh7th/cmp-path"
@@ -397,23 +378,21 @@
     :config #(let [cmp     (require :cmp)
                     luasnip (require :luasnip)]
                 (cmp.setup {
-                  :snippet {:expand (lambda [args] (luasnip.lsp_expand args.body))}
+                  :snippet {:expand #(luasnip.lsp_expand $.body)}
                   :mapping (cmp.mapping.preset.insert {
                     :<C-b>     (cmp.mapping.scroll_docs -4)
                     :<C-f>     (cmp.mapping.scroll_docs 4)
                     :<C-Space> (cmp.mapping.complete)
                     :<CR>      (cmp.mapping.confirm {:select true})
                     :<Tab>   (cmp.mapping
-                               (lambda [fallback]
-                                 (if (cmp.visible)              (cmp.select_next_item)
+                                 #(if (cmp.visible) (cmp.select_next_item)
                                      (luasnip.expand_or_jumpable) (luasnip.expand_or_jump)
-                                     (fallback)))
+                                     ($))
                                ["i" "s"])
                     :<S-Tab> (cmp.mapping
-                               (lambda [fallback]
-                                 (if (cmp.visible)        (cmp.select_prev_item)
+                                 #(if (cmp.visible) (cmp.select_prev_item)
                                      (luasnip.jumpable -1) (luasnip.jump -1)
-                                     (fallback)))
+                                     ($))
                                ["i" "s"])})
                   :sources (cmp.config.sources [
                     {:name "nvim_lsp"}
@@ -422,12 +401,17 @@
                     {:name "path"}])}))))
 
 ;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
-(table.insert PKG (mixed-map :iota "lewis6991/gitsigns.nvim" :event "VeryLazy" :opts {}))
+(table.insert PKG (mt
+    ["lewis6991/gitsigns.nvim"]
+    :lazy true
+    :event "VeryLazy"
+    :opts {}))
 
 ;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
-(table.insert PKG (mixed-map
-    :iota "lervag/vimtex"
-    :lazy false
+(table.insert PKG (mt
+    ["lervag/vimtex"]
+    :lazy true
+    :ft ["tex" "plaintex" "bib"]
     :init #(set vim.g.vimtex_view_method "general")))
 
 ;;;;;;;;;; install all packages ;;;;;;;;;;;

@@ -91,6 +91,32 @@
     :list true
     :listchars {:tab "»-" :trail "·" :nbsp "␣"})
 
+(vim.api.nvim_create_autocmd "TextYankPost" {
+    :desc "Highlight yanked text"
+    :callback
+        #(vim.highlight.on_yank {
+            :timeout 200})})
+
+(vim.api.nvim_create_autocmd "BufReadPost" {
+    :desc "Auto restore cursor"
+    :group (vim.api.nvim_create_augroup "RestoreCursor" {:clear true})
+    :pattern "*"
+    :callback
+        #(let [mark (vim.api.nvim_buf_get_mark 0 "\"")
+               loc (. mark 1)
+               lcount (vim.api.nvim_buf_line_count 0)]
+           (when (and (> loc 0) (<= loc lcount))
+                      (pcall vim.api.nvim_win_set_cursor 0 mark)))})
+
+
+(vim.api.nvim_create_autocmd "BufWritePre" {
+    :desc "Create father dir before write file"
+    :group (vim.api.nvim_create_augroup "auto_create_dir" {:clear true})
+    :callback
+        #(let [dir (vim.fn.expand "<afile>:p:h")]
+           (when (= (vim.fn.isdirectory dir) 0)
+             (pcall vim.fn.mkdir dir "p")))})
+
 (vim.cmd "aunmenu PopUp.How-to\\ disable\\ mouse")
 (vim.cmd "aunmenu PopUp.-2-")
 
@@ -117,16 +143,14 @@
 (vim.keymap.set "n" "<leader>w" vim.cmd.w {:desc "Save"})
 (vim.keymap.set "n" "<leader>q" vim.cmd.q {:desc "Quit"})
 (vim.keymap.set "n" "<leader>wq" vim.cmd.wq {:desc "Save & Quit"})
-(vim.keymap.set "n" "<leader>h" "<cmd>nohlsearch<CR>" {:desc "Clear Highlights"})
 
 (vim.keymap.set "n" "<C-h>" "<C-w>h" {:desc "Window Left"})
 (vim.keymap.set "n" "<C-l>" "<C-w>l" {:desc "Window Right"})
 (vim.keymap.set "n" "<C-j>" "<C-w>j" {:desc "Window Down"})
 (vim.keymap.set "n" "<C-k>" "<C-w>k" {:desc "Window Up"})
 
-(vim.keymap.set "n" "<S-l>" "<cmd>bnext<CR>" {:desc "Next Buffer"})
-(vim.keymap.set "n" "<S-h>" "<cmd>bprev<CR>" {:desc "Prev Buffer"})
-(vim.keymap.set "n" "<leader>x" "<cmd>bdelete<CR>" {:desc "Close Buffer"})
+(vim.keymap.set "n" "]b" "<cmd>bnext<CR>" {:desc "Next Buffer"})
+(vim.keymap.set "n" "[b" "<cmd>bprev<CR>" {:desc "Prev Buffer"})
 
 (vim.keymap.set "v" "<" "<gv" {:desc "Indent Out"})
 (vim.keymap.set "v" ">" ">gv" {:desc "Indent In"})
@@ -207,6 +231,46 @@
                      :command_palette false
                      :long_message_to_split true}}))
 
+(table.insert PKG (mt
+    ["folke/trouble.nvim"]
+    :lazy true
+    :cmd ["Trouble"]
+    :keys [
+        (mt ["<leader>xX"
+             "<cmd>Trouble diagnostics toggle<cr>"]
+             :desc "Diagnostics (Trouble)")
+        (mt ["<leader>xx"
+             "<cmd>Trouble diagnostics toggle filter.buf=0<cr>"]
+             :desc "Buffer Diagnostics (Trouble)")
+        (mt ["<leader>cs"
+             "<cmd>Trouble symbols toggle focus=false<cr>"]
+             :desc "Symbols (Trouble)")
+        (mt ["<leader>cl"
+             "<cmd>Trouble lsp toggle focus=false win.position=right<cr>"]
+             :desc "LSP Definitions / references / ... (Trouble)")
+        (mt ["<leader>xl"
+             "<cmd>Trouble loclist toggle<cr>"]
+             :desc "Location List (Trouble)")
+        (mt ["<leader>xq"
+             "<cmd>Trouble qflist toggle<cr>"]
+             :desc "Quickfix List (Trouble)")]
+    :opts {:focus true}))
+
+
+(table.insert PKG (mt
+    ["nvim-telescope/telescope.nvim"]
+    :optional true
+    :opts (lambda [_ opts]
+            (let [open_with_trouble #(call-at :trouble.sources.telescope :open $...)]
+              (set opts.defaults (
+                 vim.tbl_deep_extend
+                   "force"
+                   (or opts.defaults {})
+                   {:mappings {
+                      :i {"<c-t>" open_with_trouble}
+                      :n {"<c-t>" open_with_trouble}}}))))))
+
+
 ;;;;;;;;;; treesitter ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["romus204/tree-sitter-manager.nvim"]
@@ -216,6 +280,7 @@
     :highlight true}))
 
 
+;;;;;;;;;; jump ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["nvim-treesitter/nvim-treesitter-textobjects"]
     :branch "main"
@@ -254,8 +319,9 @@
              (mt ["[M" #((goto-previous-end) "@function.outer" "textobjects")] :mode [:n :x :o] :desc "Previous function end")
              (mt ["[C" #((goto-previous-end) "@class.outer" "textobjects")] :mode [:n :x :o] :desc "Previous class end")
              ;; --- goto next/previous (closer) ---
-             (mt ["]d" #((goto-next) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Next conditional (closer)")
-             (mt ["[d" #((goto-previous) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Previous conditional (closer)")])))
+             ; (mt ["]d" #((goto-next) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Next conditional (closer)")
+             ; (mt ["[d" #((goto-previous) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Previous conditional (closer)")
+             ])))
 
 ;;;;;;;;;;;;;; Telescope ;;;;;;;;;;;;;;
 (table.insert PKG (mt
@@ -270,9 +336,7 @@
            (mt ["<leader>fg" "<cmd>Telescope live_grep<cr>"] :desc "Live Grep")
            (mt ["<leader>fb" "<cmd>Telescope buffers<cr>"] :desc "Buffers")
            (mt ["<leader>fh" "<cmd>Telescope help_tags<cr>"] :desc "Help Tags")]
-    :opts {:defaults {:layout_strategy "vertical"
-                      :layout_config {:width 0.5 :preview_cutoff 1 :prompt_position "bottom"}
-                      :scroll_strategy "cycle"}}))
+    :opts {}))
 
 ;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
 (table.insert PKG (mt
@@ -284,7 +348,18 @@
     :opts {:default_file_explorer true
            :columns ["permissions" "size" "mtime" "icon"]}))
 
+;;;;;;;;;;;;;; diagnostics ;;;;;;;;;;;;;;
+(set vim.diagnostic.severity_sort true)
+(set vim.diagnostic.update_in_insert false)
+(vim.keymap.set :n "[d" vim.diagnostic.goto_prev {:desc "Prev Diagnostic"})
+(vim.keymap.set :n "]d" vim.diagnostic.goto_next {:desc "Next Diagnostic"})
+(vim.keymap.set :n "gl" #(vim.diagnostic.open_float) {:desc "Show Diagnostic Float"})
+(vim.keymap.set :n "<leader>dl" #(vim.diagnostic.setloclist) {:desc "Diagnostic LocList"})
+(vim.keymap.set :n "<leader>dq" #(vim.diagnostic.setqflist) {:desc "Diagnostic QuickfixList"})
+(vim.keymap.set :n "<leader>lf" vim.lsp.buf.format {:desc "Format file"})
+
 ;;;;;;;;;;;;;; LSP ;;;;;;;;;;;;;;
+;; TODO lsp 的各个语言配置应该按语言分类
 (table.insert PKG (mt
     ["williamboman/mason-lspconfig.nvim"]
     :lazy true
@@ -304,12 +379,7 @@
                   (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
                   (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
                   (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
-                  (buf-map :n "gr" #(call-at :telescope.builtin :lsp_references) "Goto References")
-                  (buf-map :n "[d" vim.diagnostic.goto_prev "Prev Diagnostic")
-                  (buf-map :n "]d" vim.diagnostic.goto_next "Next Diagnostic")
-                  (buf-map :n "gl" #(vim.diagnostic.open_float) "Show Diagnostic Float")
-                  (buf-map :n "<leader>dl" #(vim.diagnostic.setloclist) "Diagnostic LocList")
-                  (buf-map :n "<leader>lf" vim.lsp.buf.format "Format file")))})
+                  (buf-map :n "gr" #(call-at :telescope.builtin :lsp_references) "Goto References")))})
 
 ;;;;;;;;;;;;;; DAP ;;;;;;;;;;;;;;
 (table.insert PKG (mt
@@ -376,7 +446,9 @@
                    "L3MON4D3/LuaSnip"
                    "saadparwaiz1/cmp_luasnip"]
     :config #(let [cmp     (require :cmp)
-                    luasnip (require :luasnip)]
+                   luasnip (require :luasnip)
+                   cmp-nvim-lsp (require :cmp_nvim_lsp)]
+                (vim.lsp.config "*" {:capabilities (cmp-nvim-lsp.default_capabilities)})
                 (cmp.setup {
                   :snippet {:expand #(luasnip.lsp_expand $.body)}
                   :mapping (cmp.mapping.preset.insert {
@@ -400,12 +472,46 @@
                     {:name "buffer"}
                     {:name "path"}])}))))
 
+
+;;;;;;;;;;;;;; formatter ;;;;;;;;;;;;;;
+;; TODO conform 的各个语言的配置应该按语言分类
+(table.insert PKG (mt
+    ["stevearc/conform.nvim"]
+    :lazy true
+    :init #(set vim.o.formatexpr "v:lua.require'conform'.formatexpr()")
+    :cmd ["ConformInfo"]
+    :opts {}))
+
+
+;;;;;;;;;;;;;; linter ;;;;;;;;;;;;;;
+;; TODO nvim-lint 的各个语言的配置也应该按语言分类
+(table.insert PKG (mt
+    ["mfussenegger/nvim-lint"]
+    :lazy true
+    :event ["BufWritePost" "BufReadPost"]
+    :setup true))
+
+
 ;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["lewis6991/gitsigns.nvim"]
     :lazy true
     :event "VeryLazy"
     :opts {}))
+
+(table.insert PKG (mt
+    ["nvim-mini/mini.nvim"]
+    :lazy true
+    :event "VeryLazy"
+    :config #(do
+        (call-at :mini.ai :setup)
+        (call-at :mini.comment :setup)
+        (call-at :mini.surround :setup))))
+
+(table.insert PKG (mt
+    ["folke/which-key.nvim"]
+    :optional true
+    :opts [(mt ["s"] :group "Surround")]))
 
 ;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
 (table.insert PKG (mt

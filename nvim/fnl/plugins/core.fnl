@@ -5,35 +5,25 @@
     : call-at}
 (require :utils))
 
-(local lazypath
-       (.. (vim.fn.stdpath "data") "/lazy/lazy.nvim"))
 
-(if (let [stat_pkg (or vim.uv vim.loop)]
-      (not (stat_pkg.fs_stat lazypath)))
-    (do
-        (local lazyrepo "https://github.com/folke/lazy.nvim.git")
-        (local out
-               (vim.fn.system ["git" "clone" "--filter=blob:none" "--branch=stable" lazyrepo lazypath]))
-        (if (~= vim.v.shell_error 0)
-            (do
-                (vim.api.nvim_echo
-                  [["Failed to clone lazy.nvim:\n" "ErrorMsg"]
-                   [out "WarningMsg"]
-                   ["\nPress any key to exit..."]]
-                  true {})
-                (vim.fn.getchar)
-                (os.exit 1)))))
-
-(vim.opt.rtp:prepend lazypath)
 (local PKG {})
 
-(table.insert PKG (require :plugins.ui))
+;;;;;;;;;; which-key ;;;;;;;;;;;;;;
+(table.insert PKG (mt
+    ["folke/which-key.nvim"]
+    :lazy true
+    :event "VeryLazy"
+    :opts {}
+    :keys [(mt ["<leader>?" #(call-at :which-key :show {:global false})]
+           :desc "Buffer Local Keymaps (which-key)")]))
+
 
 ;;;;;;;;;; treesitter ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["romus204/tree-sitter-manager.nvim"]
     :lazy false
-    :opts {:ensure_installed ["lua" "vim" "c" "python" "fennel" "markdown" "markdown_inline" "latex"]
+    :opts_extend ["ensure_installed"]
+    :opts {:ensure_installed ["lua" "vim" "c" "fennel" "markdown" "markdown_inline" "latex"]
     :auto_install false
     :highlight true}))
 
@@ -97,9 +87,11 @@
     :opts {}))
 
 ;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
+(set vim.g.loaded_netrw 1)
+(set vim.g.loaded_netrwPlugin 1)
 (table.insert PKG (mt
     ["stevearc/oil.nvim"]
-    :lazy true
+    :lazy false
     :dependencies ["nvim-mini/mini.icons" "nvim-tree/nvim-web-devicons"]
     :cmd ["Oil"]
     :keys [(mt ["-" "<cmd>Oil<cr>"] :desc "Open parent directory")]
@@ -117,14 +109,14 @@
 (vim.keymap.set :n "<leader>lf" vim.lsp.buf.format {:desc "Format file"})
 
 ;;;;;;;;;;;;;; LSP ;;;;;;;;;;;;;;
-;; TODO lsp 的各个语言配置应该按语言分类
 (table.insert PKG (mt
     ["williamboman/mason-lspconfig.nvim"]
     :lazy true
     :event "VeryLazy"
     :dependencies [(mt ["williamboman/mason.nvim"] :opts {})
                    "neovim/nvim-lspconfig"]
-    :opts {:ensure_installed ["lua_ls" "pyright" "clangd" "fennel_ls"]}))
+    :opts_extend ["ensure_installed"]
+    :opts {:ensure_installed ["lua_ls" "clangd" "fennel_ls"]}))
 
 
 (vim.api.nvim_create_autocmd "LspAttach" {
@@ -144,15 +136,8 @@
     ["jay-babu/mason-nvim-dap.nvim"]
     :lazy true
     :dependencies [(mt ["williamboman/mason.nvim"] :opts {})]
-    :opts {
-        :ensure_installed ["python"]
-        :automatic_installation true
-        :handlers (mt
-            [#(call-at :mason-nvim-dap :default_setup $)]
-            :python #(do
-                        (each [_ c (ipairs $.configurations)]
-                            (set c.justMyCode false))
-                        (call-at :mason-nvim-dap :default_setup $)))}))
+    :opts_extend ["ensure_installed"]
+    :opts {:ensure_installed []}))
 
 (table.insert PKG (mt
     ["mfussenegger/nvim-dap"]
@@ -250,7 +235,7 @@
     :setup true))
 
 
-;;;;;;;;;;;;;; 其它实用工具 ;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; utils ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["lewis6991/gitsigns.nvim"]
     :lazy true
@@ -271,15 +256,4 @@
     :optional true
     :opts [(mt ["s"] :group "Surround")]))
 
-;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
-(table.insert PKG (mt
-    ["lervag/vimtex"]
-    :lazy true
-    :ft ["tex" "plaintex" "bib"]
-    :init #(set vim.g.vimtex_view_method "general")))
-
-;;;;;;;;;; install all packages ;;;;;;;;;;;
-(call-at :lazy :setup
-  {:spec    PKG
-   :install {:colorscheme ["habamax"]}
-   :checker {:enable true}})
+PKG

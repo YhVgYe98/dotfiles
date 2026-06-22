@@ -1,2 +1,2 @@
 (require :basic)
-(require :plugins.lazy)
+(require :plugins.init)

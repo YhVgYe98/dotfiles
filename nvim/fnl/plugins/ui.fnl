@@ -9,14 +9,6 @@
 (local PKG {})
 
 (table.insert PKG (mt
-    ["folke/which-key.nvim"]
-    :lazy true
-    :event "VeryLazy"
-    :opts {}
-    :keys [(mt ["<leader>?" #(call-at :which-key :show {:global false})]
-           :desc "Buffer Local Keymaps (which-key)")]))
-
-(table.insert PKG (mt
     ["catppuccin/nvim"]
     :name "catppuccin"
     :priority 1000

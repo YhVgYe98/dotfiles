@@ -23,7 +23,7 @@
     ["romus204/tree-sitter-manager.nvim"]
     :lazy false
     :opts_extend ["ensure_installed"]
-    :opts {:ensure_installed ["lua" "vim" "c" "fennel" "markdown" "markdown_inline" "latex"]
+    :opts {:ensure_installed ["lua" "vim" "c" "fennel" "markdown" "markdown_inline"]
     :auto_install false
     :highlight true}))
 
@@ -217,7 +217,6 @@
 
 
 ;;;;;;;;;;;;;; formatter ;;;;;;;;;;;;;;
-;; TODO conform 的各个语言的配置应该按语言分类
 (table.insert PKG (mt
     ["stevearc/conform.nvim"]
     :lazy true
@@ -227,21 +226,46 @@
 
 
 ;;;;;;;;;;;;;; linter ;;;;;;;;;;;;;;
-;; TODO nvim-lint 的各个语言的配置也应该按语言分类
 (table.insert PKG (mt
-    ["mfussenegger/nvim-lint"]
-    :lazy true
-    :event ["BufWritePost" "BufReadPost"]
-    :setup true))
-
-
-;;;;;;;;;;;;;; utils ;;;;;;;;;;;;;;
+       ["mfussenegger/nvim-lint"]
+       :lazy true
+       :event ["BufWritePost" "BufReadPost"]
+       :opts {
+           :events ["BufWritePost" "BufReadPost"]
+           :linters_by_ft {}
+       }
+       :config (lambda [_ opts]
+           (let [lint (require :lint)]
+               ;; 1. 合并所有 linters_by_ft
+               (set lint.linters_by_ft (or opts.linters_by_ft {}))
+               ;; 2. 自定义 linter 选项
+               (when opts.linters
+                 (each [name linter (pairs opts.linters)]
+                   (if (and (= (type linter) :table)
+                            (= (type (. lint.linters name)) :table))
+                       (tset lint.linters name
+                             (vim.tbl_deep_extend :force (. lint.linters name) linter))
+                       (tset lint.linters name linter))))
+               ;; 3. debounce + autocommand
+               (let [augroup (vim.api.nvim_create_augroup :nvim-lint {:clear true})
+                     events (or opts.events ["BufWritePost" "BufReadPost"])]
+                 (var lint-timer nil)
+                 (vim.api.nvim_create_autocmd events {
+                   :group augroup
+                   :callback #(do
+                       (when lint-timer (lint-timer:stop))
+                       (set lint-timer (vim.uv.new_timer))
+                       (lint-timer:start 1000 0 #(do
+                           (lint-timer:stop)
+                           (vim.schedule #(lint.try_lint)))))}))))))
+;;;;;;;;;;;;;; git ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["lewis6991/gitsigns.nvim"]
     :lazy true
     :event "VeryLazy"
     :opts {}))
 
+;;;;;;;;;;;;;; utils ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["nvim-mini/mini.nvim"]
     :lazy true

@@ -32,4 +32,20 @@
                             (set c.justMyCode false))
                         (call-at :mason-nvim-dap :default_setup $))}}))
 
+;;;;;;;;;;;;;; formatter ;;;;;;;;;;;;;;
+(table.insert PKG (mt
+    ["stevearc/conform.nvim"]
+    :optional true
+    :opts {
+        :formatters_by_ft {
+            :python ["ruff_format"]}}))
+
+;;;;;;;;;;;;;; linter ;;;;;;;;;;;;;;
+(table.insert PKG (mt
+       ["mfussenegger/nvim-lint"]
+       :optional true
+       :opts {
+           :linters_by_ft {
+               :python ["ruff"]
+           }}))
 PKG

@@ -8,6 +8,7 @@
 
 (local PKG {})
 
+;;;;;;;;;;;;;; Theme ;;;;;;;;;;;;
 (table.insert PKG (mt
     ["catppuccin/nvim"]
     :name "catppuccin"
@@ -15,14 +16,42 @@
     :lazy false
     :config #(vim.cmd.colorscheme "catppuccin-mocha")))
 
+
+;;;;;;;;;;;;; Lualine ;;;;;;;;;;;;;
+; filetypes 独立的配置可以写入 add_extensions，作为整体配置的增量配置
 (table.insert PKG (mt
     ["nvim-lualine/lualine.nvim"]
     :lazy true
     :event "VeryLazy"
+    :opts_extend ["add_extensions" "extensions"]
     :opts {:options {:theme "auto"
                      :component_separators "|"
-                     :section_separators ""}}))
+                     :section_separators ""}
+           :add_extensions []}
+    :config (lambda [_ opts]
+        (let [lualine (require :lualine)]
+            ;; 1. 全局 opts 初始化
+            (lualine.setup opts)
+            ;; 2. 有 add_extensions 时才处理
+            (when (> (length (or opts.add_extensions [])) 0)
+            (let [config (lualine.get_config)
+                    defaults (vim.deepcopy config.sections)]
+                ;; 3. 遍历每个 add_extensions 条目
+                (each [_ ext (ipairs opts.add_extensions)]
+                ;; 以默认 sections 为底，ext.sections 覆盖差异
+                (let [merged-sections (vim.tbl_deep_extend
+                                        "force"
+                                        defaults
+                                        (or ext.sections {}))]
+                    (table.insert (or config.extensions
+                                    (do (tset config :extensions []) config.extensions))
+                                {:filetypes ext.filetypes
+                                :sections merged-sections})))
+                ;; 4. 重新 setup
+                (lualine.setup config)
+                (lualine.refresh {:force true})))))))
 
+;;;;;;;;;;;; Notices ;;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["folke/noice.nvim"]
     :lazy true

@@ -226,6 +226,7 @@
 
 
 ;;;;;;;;;;;;;; linter ;;;;;;;;;;;;;;
+;; 每个 filetype 在 :opts 字段编写 :linters_by_ft 配置即可，可以像其他插件一下自动合并
 (table.insert PKG (mt
        ["mfussenegger/nvim-lint"]
        :lazy true

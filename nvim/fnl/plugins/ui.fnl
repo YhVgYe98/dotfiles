@@ -101,16 +101,17 @@
     :opts {:focus true}))
 
 (table.insert PKG (mt
-    ["nvim-telescope/telescope.nvim"]
+    ["folke/trouble.nvim"]
     :optional true
-    :opts (lambda [_ opts]
-            (let [open_with_trouble #(call-at :trouble.sources.telescope :open $...)]
-              (set opts.defaults (
-                 vim.tbl_deep_extend
-                   "force"
-                   (or opts.defaults {})
-                   {:mappings {
-                      :i {"<c-t>" open_with_trouble}
-                      :n {"<c-t>" open_with_trouble}}}))))))
+    :specs (mt ["folke/snacks.nvim"]
+        :opts (lambda [_ opts]
+            (vim.tbl_deep_extend "force" (or opts {})
+                {:picker {
+                    :actions (req-at :trouble.sources.snacks :actions)
+                    :win {
+                        :input {
+                            :keys {
+                                "<c-t>" (mt ["trouble_open"] :mode ["n" "i"])}}}}})))))
+
 
 PKG

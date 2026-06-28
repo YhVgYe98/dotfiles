@@ -71,21 +71,6 @@
              ; (mt ["[d" #((goto-previous) "@conditional.outer" "textobjects")] :mode [:n :x :o] :desc "Previous conditional (closer)")
              ])))
 
-;;;;;;;;;;;;;; Telescope ;;;;;;;;;;;;;;
-; (table.insert PKG (mt
-;     ["nvim-telescope/telescope.nvim"]
-;     :lazy true
-;     :version "*"
-;     :dependencies ["nvim-lua/plenary.nvim"
-;                    (mt ["nvim-telescope/telescope-fzf-native.nvim"] :build "make")
-;                    "nvim-tree/nvim-web-devicons"]
-;     :cmd ["Telescope"]
-;     :keys [(mt ["<leader>ff" "<cmd>Telescope find_files<cr>"] :desc "Find Files")
-;            (mt ["<leader>fg" "<cmd>Telescope live_grep<cr>"] :desc "Live Grep")
-;            (mt ["<leader>fb" "<cmd>Telescope buffers<cr>"] :desc "Buffers")
-;            (mt ["<leader>fh" "<cmd>Telescope help_tags<cr>"] :desc "Help Tags")]
-;     :opts {}))
-
 ;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
 (set vim.g.loaded_netrw 1)
 (set vim.g.loaded_netrwPlugin 1)
@@ -129,7 +114,7 @@
                   (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
                   (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
                   (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
-                  (buf-map :n "gr" #(call-at :telescope.builtin :lsp_references) "Goto References")))})
+                  (buf-map :n "gr" #(call-at :snacks.picker :lsp_references) "Goto References")))})
 
 ;;;;;;;;;;;;;; DAP ;;;;;;;;;;;;;;
 (table.insert PKG (mt
@@ -144,9 +129,7 @@
     :lazy true
     :dependencies ["rcarriga/nvim-dap-ui"
                    "nvim-neotest/nvim-nio"
-                   "jay-babu/mason-nvim-dap.nvim"
-                   "nvim-telescope/telescope-dap.nvim"
-                   "nvim-telescope/telescope.nvim"]
+                   "jay-babu/mason-nvim-dap.nvim"]
     :keys [
             (mt ["<F5>" #(call-at :dap :continue)] :mode [:n] :desc "Debug: Start/Continue")
             (mt ["<F10>" #(call-at :dap :step_over)] :mode [:n] :desc "Debug: Step Over")
@@ -154,8 +137,7 @@
             (mt ["<F12>" #(call-at :dap :step_out)] :mode [:n] :desc "Debug: Step Out")
             (mt ["<leader>b" #(call-at :dap :toggle_breakpoint)] :mode [:n] :desc "Debug: Toggle Breakpoint")
             (mt ["<leader>B" #((call-at :dap :set_breakpoint) (vim.fn.input "Breakpoint condition: "))] :mode [:n] :desc "Debug: Set Conditional Breakpoint")
-            (mt ["<leader>du" #(call-at :dapui :toggle)] :mode [:n] :desc "Debug: Toggle UI")
-            (mt ["<leader>fb" #(call-at :telescope.dap :list_breakpoints)] :mode [:n] :desc "Telescope: View Breakpoints")]
+            (mt ["<leader>du" #(call-at :dapui :toggle)] :mode [:n] :desc "Debug: Toggle UI")]
     :config #(let [dap (require :dap)
                     dapui (require :dapui)]
                 (dapui.setup)

@@ -23,7 +23,7 @@
 ;;;;;;;;;; venv-selector ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["linux-cultist/venv-selector.nvim"]
-    :dependencies ["nvim-telescope/telescope.nvim"]
+    :dependencies ["folke/snacks.nvim"]
     :lazy true
     :ft "python"
     :cmd "VenvSelect"

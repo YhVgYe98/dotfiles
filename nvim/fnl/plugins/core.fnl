@@ -72,19 +72,19 @@
              ])))
 
 ;;;;;;;;;;;;;; Telescope ;;;;;;;;;;;;;;
-(table.insert PKG (mt
-    ["nvim-telescope/telescope.nvim"]
-    :lazy true
-    :version "*"
-    :dependencies ["nvim-lua/plenary.nvim"
-                   (mt ["nvim-telescope/telescope-fzf-native.nvim"] :build "make")
-                   "nvim-tree/nvim-web-devicons"]
-    :cmd ["Telescope"]
-    :keys [(mt ["<leader>ff" "<cmd>Telescope find_files<cr>"] :desc "Find Files")
-           (mt ["<leader>fg" "<cmd>Telescope live_grep<cr>"] :desc "Live Grep")
-           (mt ["<leader>fb" "<cmd>Telescope buffers<cr>"] :desc "Buffers")
-           (mt ["<leader>fh" "<cmd>Telescope help_tags<cr>"] :desc "Help Tags")]
-    :opts {}))
+; (table.insert PKG (mt
+;     ["nvim-telescope/telescope.nvim"]
+;     :lazy true
+;     :version "*"
+;     :dependencies ["nvim-lua/plenary.nvim"
+;                    (mt ["nvim-telescope/telescope-fzf-native.nvim"] :build "make")
+;                    "nvim-tree/nvim-web-devicons"]
+;     :cmd ["Telescope"]
+;     :keys [(mt ["<leader>ff" "<cmd>Telescope find_files<cr>"] :desc "Find Files")
+;            (mt ["<leader>fg" "<cmd>Telescope live_grep<cr>"] :desc "Live Grep")
+;            (mt ["<leader>fb" "<cmd>Telescope buffers<cr>"] :desc "Buffers")
+;            (mt ["<leader>fh" "<cmd>Telescope help_tags<cr>"] :desc "Help Tags")]
+;     :opts {}))
 
 ;;;;;;;;;;;;;; directory ;;;;;;;;;;;;;;
 (set vim.g.loaded_netrw 1)
@@ -280,5 +280,21 @@
     ["folke/which-key.nvim"]
     :optional true
     :opts [(mt ["s"] :group "Surround")]))
+
+
+(table.insert PKG (mt
+    ["folke/snacks.nvim"]
+    :lazy false
+    :priority 900
+    :opts {
+        :picker {:enable true}}
+    :keys [
+        (mt ["<leader>fb" #(call-at :snacks.picker :buffers)] :desc "Buffers")
+        (mt ["<leader>ff" #(call-at :snacks.picker :files)] :desc "Files")
+        (mt ["<leader>fg" #(call-at :snacks.picker :grep)] :desc "Grep")
+        (mt ["<leader>fr" #(call-at :snacks.picker :recent)] :desc "Recent")
+        (mt ["<leader>fk" #(call-at :snacks.picker :keymaps)] :desc "Keymaps")
+        (mt ["<leader>fh" #(call-at :snacks.picker :help)] :desc "Help")]))
+
 
 PKG

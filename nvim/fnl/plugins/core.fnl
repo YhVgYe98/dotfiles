@@ -269,7 +269,7 @@
     :lazy false
     :priority 900
     :opts {
-        :picker {:enable true}}
+        :picker {:enable true} :input {:enable true}}
     :keys [
         (mt ["<leader>fb" #(call-at :snacks.picker :buffers)] :desc "Buffers")
         (mt ["<leader>ff" #(call-at :snacks.picker :files)] :desc "Files")

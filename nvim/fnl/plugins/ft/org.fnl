@@ -42,6 +42,23 @@
                 :template "* %?\n  %U"
                 :target "~/org/journal/%<%Y-%m-%d>.org"}
         }
+        :ui {
+            :menu {
+                :handler (fn [menu-data]
+                    (let [items []]
+                      (each [_ item (ipairs menu-data.items)]
+                        (when (not item.icon)
+                          (table.insert items item)))
+                      (vim.ui.select items {
+                        :prompt menu-data.title
+                        :format_item #(.. $.key "  " $.label)
+                        :kind "orgmode"
+                      } #(when (and $ $.action) ($.action)))))
+            }
+            :input {
+                :use_vim_ui true
+            }
+        }
     }
     :config (lambda [_ opts]
         ;; Ensure journal dir + today's file exists before capture
@@ -49,7 +66,10 @@
               today-file  (.. journal-dir "/" (os.date "%Y-%m-%d") ".org")]
           (vim.fn.mkdir journal-dir "p")
           (when (= 0 (vim.fn.filereadable today-file))
-            (vim.fn.writefile [] today-file)))
+            (let [title  (.. "#+TITLE: " (os.date "%Y-%m-%d") " JOURNAL")
+                  author (.. "#+AUTHOR: " (vim.fn.expand "$USER") "@" (vim.fn.hostname))
+                  header [title author ""]]
+              (vim.fn.writefile header today-file))))
         (call-at :orgmode :setup opts)
         (vim.lsp.enable "org")
         (vim.api.nvim_create_autocmd "FileType" {

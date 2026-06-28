@@ -30,7 +30,13 @@
         :org_confirm_before_closing false
         :org_capture_templates {
             :t {:description "Todo"
-                :template "* TODO %?\n  SCHEDULED: %t\n  DEADLINE: %^{Deadline date}t\n  %U"
+                :template "* TODO %?\n  %^{Begin date}t\n  %U"
+                :target "~/org/journal/%<%Y-%m-%d>.org"}
+            :s {:description "Todo, scheduled"
+                :template "* TODO %?\n  SCHEDULED: %^{Scheduled date}t\n  %U"
+                :target "~/org/journal/%<%Y-%m-%d>.org"}
+            :d {:description "Todo, with deadline"
+                :template "* TODO %?\n  SCHEDULED: %^{Scheduled date}t\n  DEADLINE: %^{Deadline date}t\n  %U"
                 :target "~/org/journal/%<%Y-%m-%d>.org"}
             :j {:description "Journal"
                 :template "* %?\n  %U"

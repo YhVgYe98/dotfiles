@@ -202,9 +202,20 @@
 (table.insert PKG (mt
     ["stevearc/conform.nvim"]
     :lazy true
+    :event ["BufWritePost" "BufReadPost"]
     :init #(set vim.o.formatexpr "v:lua.require'conform'.formatexpr()")
     :cmd ["ConformInfo"]
-    :opts {}))
+    :opts_extend [:autoformat_fts]
+    :opts {
+        :autoformat_fts []
+        :notify_no_formatters false}
+    :config (lambda [_ opts]
+        (tset opts :format_on_save
+            (lambda [bufnr]
+                (let [ft (. vim.bo bufnr :filetype)]
+                    (when (vim.tbl_contains opts.autoformat_fts ft)
+                        {:timeout_ms 500 :lsp_format "fallback"}))))
+        (call-at :conform :setup opts))))
 
 
 ;;;;;;;;;;;;;; linter ;;;;;;;;;;;;;;

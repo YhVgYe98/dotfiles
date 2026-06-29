@@ -23,7 +23,7 @@
     ["romus204/tree-sitter-manager.nvim"]
     :lazy false
     :opts_extend ["ensure_installed"]
-    :opts {:ensure_installed ["lua" "vim" "c" "fennel" "markdown" "markdown_inline"]
+    :opts {:ensure_installed ["lua" "vim" "c" "fennel" "markdown" "markdown_inline" "yaml" "toml" "json" "json5"]
     :auto_install false
     :highlight true}))
 

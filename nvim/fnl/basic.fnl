@@ -93,8 +93,10 @@
 
 (vim.keymap.set "i" "jj" "<ESC>" {:silent true})
 (vim.keymap.set "n" "<leader>w" vim.cmd.w {:desc "Save"})
-(vim.keymap.set "n" "<leader>q" vim.cmd.q {:desc "Quit"})
-(vim.keymap.set "n" "<leader>wq" vim.cmd.wq {:desc "Save & Quit"})
+(vim.keymap.set "n" "<leader>q" vim.cmd.bdelete {:desc "Close Buffer"})
+(vim.keymap.set "n" "<leader>wq" vim.cmd.bdelete {:desc "Close Buffer"})
+(vim.keymap.set "n" "<leader>qq" vim.cmd.q {:desc "Quit"})
+(vim.keymap.set "n" "<leader>wqq" vim.cmd.wq {:desc "Save & Quit"})
 
 (vim.keymap.set "n" "<C-h>" "<C-w>h" {:desc "Window Left"})
 (vim.keymap.set "n" "<C-l>" "<C-w>l" {:desc "Window Right"})

@@ -101,7 +101,7 @@
     :dependencies [(mt ["williamboman/mason.nvim"] :opts {})
                    "neovim/nvim-lspconfig"]
     :opts_extend ["ensure_installed"]
-    :opts {:ensure_installed ["lua_ls" "clangd" "fennel_ls"]}))
+    :opts {:ensure_installed ["lua_ls" "fennel_ls"]}))
 
 
 (vim.api.nvim_create_autocmd "LspAttach" {

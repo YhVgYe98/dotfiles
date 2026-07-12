@@ -8,6 +8,10 @@
 
 (local PKG {})
 
+;; LSP 开关: NVIM_NO_LSP=1 启动时禁用 LSP (远程服务器), 运行时 :LspToggle 切换
+;; 用显式 = "1" 判断, 避免 Lua 中 "0"/"" 也为 truthy 的坑
+(local lsp-enabled (not (= vim.env.NVIM_NO_LSP "1")))
+
 ;;;;;;;;;; which-key ;;;;;;;;;;;;;;
 (table.insert PKG (mt
     ["folke/which-key.nvim"]
@@ -101,20 +105,39 @@
     :dependencies [(mt ["williamboman/mason.nvim"] :opts {})
                    "neovim/nvim-lspconfig"]
     :opts_extend ["ensure_installed"]
-    :opts {:ensure_installed ["lua_ls" "fennel_ls"]}))
+    :opts {:ensure_installed ["lua_ls" "fennel_ls"]
+           :automatic_enable lsp-enabled}))
 
 
 (vim.api.nvim_create_autocmd "LspAttach" {
     :group (vim.api.nvim_create_augroup :UserLspConfig {})
     :callback (lambda [args]
-                (let [bufnr args.buf
-                      buf-map (lambda [mode lhs rhs desc]
-                                (vim.keymap.set mode lhs rhs {:buffer bufnr :silent true :desc desc}))]
-                  (buf-map :n "gd" vim.lsp.buf.definition "Goto Definition")
-                  (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
-                  (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
-                  (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
-                  (buf-map :n "gr" #(call-at :snacks.picker :lsp_references) "Goto References")))})
+                (if vim.g.lsp_disabled
+                    (vim.lsp.stop_client args.data.client_id)
+                    (let [bufnr args.buf
+                          buf-map (lambda [mode lhs rhs desc]
+                                    (vim.keymap.set mode lhs rhs {:buffer bufnr :silent true :desc desc}))]
+                      (buf-map :n "gd" vim.lsp.buf.definition "Goto Definition")
+                      (buf-map :n "K"  vim.lsp.buf.hover "Hover Documentation")
+                      (buf-map :n "<leader>rn" vim.lsp.buf.rename "Rename")
+                      (buf-map :n "<leader>ca" vim.lsp.buf.code_action "Code Action")
+                      (buf-map :n "gr" #(call-at :snacks.picker :lsp_references) "Goto References"))))})
+
+;;;;;;;;;;;;;; LSP Toggle ;;;;;;;;;;;;;;
+;; 运行时手动切换 LSP: :LspToggle 停止/启动所有客户端; 内置 :LspStop/:LspStart 逐 buffer
+;; 注意: 以 NVIM_NO_LSP=1 启动时服务器未 enable, :LspToggle 无法启动, 需去掉环境变量重启
+(vim.api.nvim_create_user_command "LspToggle"
+  (fn []
+    (if vim.g.lsp_disabled
+        (do
+          (set vim.g.lsp_disabled false)
+          (vim.cmd "LspStart")
+          (vim.notify "LSP: 已启动" vim.log.levels.INFO))
+        (do
+          (vim.lsp.stop_client (vim.lsp.get_clients))
+          (set vim.g.lsp_disabled true)
+          (vim.notify "LSP: 已停止 (运行 :LspToggle 重新启动)" vim.log.levels.WARN))))
+  {:desc "切换 LSP 开关"})
 
 ;;;;;;;;;;;;;; DAP ;;;;;;;;;;;;;;
 (table.insert PKG (mt

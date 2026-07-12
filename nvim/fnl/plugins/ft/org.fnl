@@ -71,7 +71,7 @@
                   header [title author ""]]
               (vim.fn.writefile header today-file))))
         (call-at :orgmode :setup opts)
-        (vim.lsp.enable "org")
+        (when (not (= vim.env.NVIM_NO_LSP "1")) (vim.lsp.enable "org"))
         (vim.api.nvim_create_autocmd "FileType" {
             :pattern "org"
             :callback #(do

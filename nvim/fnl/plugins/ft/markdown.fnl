@@ -27,7 +27,6 @@
     :lazy true
     :ft ["markdown"]
     :cmd ["MarkdownPreview" "MarkdownPreviewStop" "MarkdownPreviewToggle"]
-    :build #(do (call-at :lazy :load {:plugins [:markdown-preview.nvim]})
-             (. vim.fn :mkdp#util#install))))  ; 下载预编译 binary, 无需 node/yarn
+    :build ":call mkdp#util#install()"))  ; 下载预编译 binary, 无需 node/yarn
 
 PKG

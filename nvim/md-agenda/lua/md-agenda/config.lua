@@ -1,0 +1,65 @@
+-- 默认配置 + deep-merge。
+local M = {}
+
+M.defaults = {
+  -- agenda 扫描的目录列表(rg 递归扫 .md)
+  scan_dirs = { "~/notes" },
+
+  -- capture 写入文件。支持 strftime 模板(如 %Y-%m-%d),capture 时现算
+  capture_file = "~/notes/journal/%Y-%m-%d.md",
+
+  -- capture 模板。键为标识,值为 {desc=, template=}
+  templates = {
+    default = {
+      desc = "Task",
+      template = "- [ ][%^{from}] %?",
+    },
+  },
+
+  -- 默认状态字符: [1]=todo 用于 :MdAgenda, [2]=done 用于 :MdAgendaDone
+  default_states = { " ", "x" },
+
+  -- 默认键位
+  keymaps = {
+    capture = "<leader>mc",
+    agenda = "<leader>ma",
+    agenda_done = "<leader>md",
+  },
+}
+
+M._config = nil
+
+--- deep-merge 两个表(用户覆盖默认)
+local function deep_merge(t1, t2)
+  for k, v in pairs(t2) do
+    if type(v) == "table" and type(t1[k]) == "table" then
+      deep_merge(t1[k], v)
+    else
+      t1[k] = v
+    end
+  end
+  return t1
+end
+
+--- 初始化配置。
+--- @param opts table|nil 用户配置
+--- @return table  最终配置
+function M.setup(opts)
+  local cfg = vim.deepcopy(M.defaults)
+  if opts then
+    deep_merge(cfg, opts)
+  end
+  M._config = cfg
+  return cfg
+end
+
+--- 获取当前配置(若未 setup 则返回 defaults 副本)。
+--- @return table
+function M.get()
+  if not M._config then
+    M._config = vim.deepcopy(M.defaults)
+  end
+  return M._config
+end
+
+return M

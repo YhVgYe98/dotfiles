@@ -77,7 +77,7 @@ require("md-agenda").setup({
   templates = {
     default = {
       desc = "Task",
-      template = "- [ ] [%^{from}] %?",
+      template = "- [ ][%^{from}] %?",
     },
   },
 
@@ -137,9 +137,9 @@ M.show(active)
 | `%t` | 当前日期 `YYYY-MM-DD` |
 | `%T` | 当前时间戳 `YYYY-MM-DDThh:mm:ss` |
 | `%^{name}` | 交互式文本输入 |
-| `%^{from}` | 交互式日期选择 → `[date]`（可只选日期，不带时间） |
-| `%^{until}` | 交互式日期选择 → `[/date]` |
-| `%^{range}` | 两次交互式日期选择 → `[start/stop]` |
+| `%^{from}` | 交互式日期选择 → 日期填入模板的 `[]` 内（如 `[%^{from}]` → `[2026-08-01]`，可只选日期不带时间） |
+| `%^{until}` | 交互式日期选择 → 填入 `[/date]`（如 `[%^{until}]` → `[/2026-08-01]`） |
+| `%^{range}` | 两次交互式日期选择 → 填入 `[start/stop]`（如 `[%^{range}]` → `[2026-08-01/2026-08-31]`） |
 
 ### Capture 追加规则
 

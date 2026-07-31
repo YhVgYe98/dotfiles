@@ -93,7 +93,7 @@ M.defaults = {
   scan_dirs = { "~/notes" },
   capture_file = "~/notes/journal/%Y-%m-%d.md",
   templates = {
-    default = { desc = "Task", template = "- [ ] [%^{from}] %?" },
+    default = { desc = "Task", template = "- [ ][%^{from}] %?" },
   },
   default_states = { " ", "x" },
   keymaps = {
@@ -427,16 +427,24 @@ PKG
 
 ## 实现顺序
 
-1. **date.lua** — 纯 Lua，无依赖，可独立单测
-2. **parse.lua** — 依赖 date，单测 block 解析
-3. **scan.lua** — 依赖 vim.system + rg
-4. **agenda.lua** — 依赖 scan + parse
-5. **ui.lua** — 依赖 snacks
-6. **capture.lua** — 依赖 ui + date
-7. **config.lua** — 纯配置
-8. **init.lua** — 组装
-9. **fnl/plugins/md-agenda.fnl** — lazy 集成
-10. 校验：`nvim --headless` 加载测试
+1. ✅ **date.lua** — 纯 Lua，无依赖，可独立单测
+2. ✅ **parse.lua** — 依赖 date，单测 block 解析
+3. ✅ **scan.lua** — 依赖 vim.system + rg（用 io.lines 规避 fast event 限制）
+4. ✅ **agenda.lua** — 依赖 scan + parse
+5. ✅ **ui.lua** — 依赖 snacks（format="text" + layout preset="select" 单框无预览）
+6. ✅ **capture.lua** — 依赖 ui + date（行尾用 startinsert! 修复 cursor 定位）
+7. ✅ **config.lua** — 纯配置
+8. ✅ **init.lua** — 组装
+9. ✅ **fnl/plugins/md-agenda.fnl** — lazy 集成
+10. ✅ 校验：6 个测试套件 107 个测试全部通过；端到端 collect/filter/show 验证
+
+## 实现过程中的关键修复
+
+- **date.lua**：Lua 模式 `?` 不能修饰捕获组 `(T...)`，改用双模式分别匹配
+- **scan.lua**：`vim.fn.readfile` 不能在 `vim.system` 的 fast event 回调中调用，改用 `io.lines`
+- **capture.lua**：Lua 模式无 alternation，`render` 改用手动扫描占位符；`%^{from}` 不再加方括号（模板的 `[]` 已提供）；行尾 cursor 用 `startinsert!` 而非 `startinsert`
+- **config.lua**：默认模板 `- [ ][%^{from}] %?`（state 与 ts 间无空格，匹配 task 语法）
+- **ui.lua**：item 用 `data` 字段存跳转信息（不用 `file`/`pos`，避免触发 snacks 文件格式器）；`format = "text"` + `layout = { preset = "select" }` 实现单框无预览
 
 ## v1 不做（留 v2）
 

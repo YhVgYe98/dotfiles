@@ -32,6 +32,7 @@
 (table.insert PKG (require :plugins.ui))
 (table.insert PKG (require :plugins.core))
 (table.insert PKG (require :plugins.extras))
+(table.insert PKG (require :plugins.md-agenda))
 
 ;;;;;;;;;;;;; FILETYPE PLUGINS ;;;;;;;;;;;;;
 (each [name type (vim.fs.dir (.. (vim.fn.stdpath :config) :/fnl/plugins/ft))]

@@ -397,34 +397,25 @@ return M
 
 ## lazy 集成
 
-新建 `nvim/fnl/plugins/md-agenda.fnl`：
+spec 放在 `nvim/fnl/plugins/ft/markdown.fnl`（markdown 文件类型相关插件，由 `plugins/init.fnl` 动态加载）：
 
 ```fennel
-(local {
-    : set-opts
-    : mt
-    : req-at
-    : call-at}
- (require :utils))
-
-(local PKG {})
-
+;;;;;;;;;; md-agenda ;;;;;;;;;;;;;
+;; markdown task 管理: capture + agenda (本地插件, dir 指向 config/md-agenda)
 (table.insert PKG (mt
     ["md-agenda"]
     :dir (.. (vim.fn.stdpath :config) "/md-agenda")
+    :lazy true
+    :ft ["markdown"]
     :cmd ["MdCapture" "MdAgenda" "MdAgendaDone"]
     :opts {:scan_dirs ["~/notes"]
            :capture_file "~/notes/journal/%Y-%m-%d.md"}
     :keys [(mt ["<leader>mc" "<cmd>MdCapture<cr>"] :desc "Capture task")
            (mt ["<leader>ma" "<cmd>MdAgenda<cr>"] :desc "Agenda (todo)")
            (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")]))
-
-PKG
 ```
 
 注意：`dir` 用本地路径指向 `nvim/md-agenda`，插件代码在该目录下。`:opts` 直接传给 `setup`。
-
-同时需在 `nvim/fnl/plugins/init.fnl` 中加载该 spec（参照现有 `extras.fnl` 等 `table.insert PKG (require :plugins.xxx)` 模式，但 md-agenda 是独立功能模块，建议在 `init.fnl` 中显式加入或新建独立 require 入口）。
 
 ## 实现顺序
 
@@ -436,10 +427,10 @@ PKG
 6. ✅ **capture.lua** — 依赖 ui + date（行尾用 startinsert! 修复 cursor 定位）
 7. ✅ **config.lua** — 纯配置
 8. ✅ **init.lua** — 组装
-9. ✅ **fnl/plugins/md-agenda.fnl** — lazy 集成
+9. ✅ **fnl/plugins/ft/markdown.fnl** — lazy 集成（ft 文件类型插件目录，markdown buffer 时加载）
 10. ✅ 校验：6 个测试套件 107 个测试全部通过；端到端 collect/filter/show 验证
 11. ✅ **calendar.lua** — 浮窗月历（移植 orgmode，capture 日期选择器从文本对话框升级为月历）
-12. ✅ 校验：tests/ 23 个测试全部通过（luajit tests/run.lua）；headless 验证打开/导航/时间模式/取消/翻月/from/range 全流程
+12. ✅ 校验：tests/ 23 个测试全部通过（luajit tests/run.lua）；headless 验证打开/导航/时间模式/取消/翻月/from/range 全流程（tests/ 为本地开发用，不入库）
 
 ## 实现过程中的关键修复
 
@@ -457,7 +448,7 @@ PKG
   - 修复：`step_time` 分钟先对齐到步长网格再步进（11 分 +5 → 15 而非 16），越界进位/借位到小时（57 → 下小时 0、0 向下 → 上小时 55）
   - 模块加载不接触 vim（纯逻辑可单测）；`read_date` 延迟 require ui.lua 避免循环依赖
   - `parse_point` 仅校验格式（PLAN 设计），日历 `i` 手动输入时额外校验真实日期范围
-- **tests/**：纯 Lua 测试（无 busted 依赖），`luajit tests/run.lua` 运行；run.lua 用 arg[0] 定位脚本目录而非 cwd
+- **tests/**：纯 Lua 测试（无 busted 依赖），`luajit tests/run.lua` 运行；run.lua 用 arg[0] 定位脚本目录而非 cwd（本地开发用，不入仓库）
 
 ## v1 不做（留 v2）
 

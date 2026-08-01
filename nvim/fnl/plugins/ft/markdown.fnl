@@ -29,4 +29,18 @@
     :cmd ["MarkdownPreview" "MarkdownPreviewStop" "MarkdownPreviewToggle"]
     :build ":call mkdp#util#install()"))  ; 下载预编译 binary, 无需 node/yarn
 
+;;;;;;;;;; md-agenda ;;;;;;;;;;;;;
+;; markdown task 管理: capture + agenda (本地插件, dir 指向 config/md-agenda)
+(table.insert PKG (mt
+    ["md-agenda"]
+    :dir (.. (vim.fn.stdpath :config) "/md-agenda")
+    :lazy true
+    :ft ["markdown"]
+    :cmd ["MdCapture" "MdAgenda" "MdAgendaDone"]
+    :opts {:scan_dirs ["~/notes"]
+           :capture_file "~/notes/journal/%Y-%m-%d.md"}
+    :keys [(mt ["<leader>mc" "<cmd>MdCapture<cr>"] :desc "Capture task")
+           (mt ["<leader>ma" "<cmd>MdAgenda<cr>"] :desc "Agenda (todo)")
+           (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")]))
+
 PKG

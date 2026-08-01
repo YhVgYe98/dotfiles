@@ -136,8 +136,8 @@
             (mt ["<F10>" #(call-at :dap :step_over)] :mode [:n] :desc "Debug: Step Over")
             (mt ["<F11>" #(call-at :dap :step_into)] :mode [:n] :desc "Debug: Step Into")
             (mt ["<F12>" #(call-at :dap :step_out)] :mode [:n] :desc "Debug: Step Out")
-            (mt ["<leader>b" #(call-at :dap :toggle_breakpoint)] :mode [:n] :desc "Debug: Toggle Breakpoint")
-            (mt ["<leader>B" #((call-at :dap :set_breakpoint) (vim.fn.input "Breakpoint condition: "))] :mode [:n] :desc "Debug: Set Conditional Breakpoint")
+            (mt ["<leader>db" #(call-at :dap :toggle_breakpoint)] :mode [:n] :desc "Debug: Toggle Breakpoint")
+            (mt ["<leader>dB" #((call-at :dap :set_breakpoint) (vim.fn.input "Breakpoint condition: "))] :mode [:n] :desc "Debug: Set Conditional Breakpoint")
             (mt ["<leader>du" #(call-at :dapui :toggle)] :mode [:n] :desc "Debug: Toggle UI")]
     :config #(let [dap (require :dap)
                     dapui (require :dapui)]

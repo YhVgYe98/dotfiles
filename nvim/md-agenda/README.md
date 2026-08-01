@@ -6,9 +6,9 @@
 
 - **Task 语法**：`- [c][ts] 标题`，双方括号区分于普通 checkbox
 - **时间戳**：ISO 8601，支持三种活跃窗口 + 永久活跃
-- **Capture**：交互式模板，支持日期/时间选择（只选日期则不带时间，与 orgmode 行为一致）
+- **Capture**：交互式模板，日期/时间通过浮窗月历选择（org 风格，hjkl 导航，`t` 输入时间），也可手动输入
 - **Agenda**：pipeline 式 API（收集 → 过滤 → 展示），高度可组合
-- **零自研 UI**：复用 snacks.picker 的 fuzzy 搜索 + 预览 + 跳转
+- **零自研 UI**：复用 snacks.picker 的 fuzzy 搜索 + 预览 + 跳转（日历为移植 orgmode 的自研浮窗，MIT）
 
 ## Task 语法
 
@@ -84,6 +84,12 @@ require("md-agenda").setup({
   -- 默认状态字符：[0]=todo 用于 :MdAgenda, [1]=done 用于 :MdAgendaDone
   default_states = { " ", "x" },
 
+  -- 浮窗日历：week_start 为 ISO 周起始（1=周一..7=周日），min_step 为时间模式下分钟步长
+  calendar = {
+    week_start = 1,
+    min_step = 5,
+  },
+
   -- 默认键位（也可在 lazy spec keys 里绑）
   keymaps = {
     capture = "<leader>mc",
@@ -137,9 +143,38 @@ M.show(active)
 | `%t` | 当前日期 `YYYY-MM-DD` |
 | `%T` | 当前时间戳 `YYYY-MM-DDThh:mm:ss` |
 | `%^{name}` | 交互式文本输入 |
-| `%^{from}` | 交互式日期选择 → 日期填入模板的 `[]` 内（如 `[%^{from}]` → `[2026-08-01]`，可只选日期不带时间） |
-| `%^{until}` | 交互式日期选择 → 填入 `[/date]`（如 `[%^{until}]` → `[/2026-08-01]`） |
-| `%^{range}` | 两次交互式日期选择 → 填入 `[start/stop]`（如 `[%^{range}]` → `[2026-08-01/2026-08-31]`） |
+| `%^{from}` | 弹浮窗月历选日期 → 填入模板的 `[]` 内（如 `[%^{from}]` → `[2026-08-01]`；按 `t` 可带时间 `[2026-08-01T10:00:00]`） |
+| `%^{until}` | 弹浮窗月历 → 填入 `[/date]`（如 `[%^{until}]` → `[/2026-08-01]`） |
+| `%^{range}` | 连续两次弹浮窗月历 → 填入 `[start/stop]`（如 `[%^{range}]` → `[2026-08-01/2026-08-31]`） |
+
+### 浮窗日历键位
+
+```
+           八月 2026
+ Mon  Tue  Wed  Thu  Fri  Sat  Sun
+                          01   02
+ 03   04   05   06   07   08   09
+ ...
+               11:45
+ [<] - prev month  [>] - next month
+ [.] - today   [Enter] - select day
+ [i] - enter date
+ [t] - enter time
+```
+
+| 键 | 行为 |
+|---|---|
+| `h`/`j`/`k`/`l`、方向键 | 在日期格间移动（跨行自动跳到相邻格） |
+| `<` / `>` | 上一月 / 下一月（支持 count） |
+| `.` | 回到今天 |
+| `i` | 手动输入日期（`YYYY-MM-DD` 或 `YYYY-MM-DDThh:mm:ss`） |
+| `t` | 进入时间模式：左右键切换 小时/分钟，上下键调值（分钟按 `min_step` 步进，默认 5） |
+| `T` | 清除时间（回到纯日期） |
+| `d` | 从时间模式回到日期选择 |
+| `<CR>` | 确认选择 |
+| `q` / `<Esc>` | 取消 |
+
+只选日期则不带时间（与 orgmode 行为一致）。
 
 ### Capture 追加规则
 

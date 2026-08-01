@@ -78,7 +78,8 @@ nvim/md-agenda/                  插件根目录（lazy dir= 指向此处）
 │       ├── parse.lua   block → item 结构
 │       ├── agenda.lua  collect/filter_by_states/exclude_by_states/filter_active
 │       ├── ui.lua      snacks 适配层（唯一接触 snacks 的模块）
-│       └── date.lua    ISO 8601 解析/格式化/校验
+│       ├── calendar.lua 浮窗月历（移植 orgmode，纯逻辑可单测）
+│       └── date.lua    ISO 8601 解析/格式化/校验 + 日历纯函数
 ├── README.md         用户文档
 └── PLAN.md           本文件
 ```
@@ -437,6 +438,8 @@ PKG
 8. ✅ **init.lua** — 组装
 9. ✅ **fnl/plugins/md-agenda.fnl** — lazy 集成
 10. ✅ 校验：6 个测试套件 107 个测试全部通过；端到端 collect/filter/show 验证
+11. ✅ **calendar.lua** — 浮窗月历（移植 orgmode，capture 日期选择器从文本对话框升级为月历）
+12. ✅ 校验：tests/ 23 个测试全部通过（luajit tests/run.lua）；headless 验证打开/导航/时间模式/取消/翻月/from/range 全流程
 
 ## 实现过程中的关键修复
 
@@ -445,6 +448,16 @@ PKG
 - **capture.lua**：Lua 模式无 alternation，`render` 改用手动扫描占位符；`%^{from}` 不再加方括号（模板的 `[]` 已提供）；行尾 cursor 用 `startinsert!` 而非 `startinsert`
 - **config.lua**：默认模板 `- [ ][%^{from}] %?`（state 与 ts 间无空格，匹配 task 语法）
 - **ui.lua**：item 用 `data` 字段存跳转信息（不用 `file`/`pos`，避免触发 snacks 文件格式器）；`format = "text"` + `layout = { preset = "select" }` 实现单框无预览
+- **calendar.lua**（移植自 nvim-orgmode `objects/calendar.lua`，MIT）：
+  - 浮窗 36x14 居中，scratch buffer + bufhidden=wipe；BufWipeout 统一兜底 dispose（取消 → cb(nil)）
+  - 高亮用 `nvim_buf_add_highlight`（不移植 orgmode 的 Range/colors 工具），今日 reverse / 选中日 underline
+  - 光标→日期用渲染时记录的 `day_at` 映射（orgmode 用正则 `<cword>` 解析，本实现更精确）
+  - 时间模式按用户实际体验实现：左右切 小时/分钟，上下调值，分钟步长固定（`min_step` 可配），非 orgmode 源码的三态步长
+  - 修复：j/k（含方向键）日期模式方向反转（j 应下移 +1、k 上移 -1）；时间模式取反作为步进方向（k=上=增加，与 org 一致）
+  - 修复：`step_time` 分钟先对齐到步长网格再步进（11 分 +5 → 15 而非 16），越界进位/借位到小时（57 → 下小时 0、0 向下 → 上小时 55）
+  - 模块加载不接触 vim（纯逻辑可单测）；`read_date` 延迟 require ui.lua 避免循环依赖
+  - `parse_point` 仅校验格式（PLAN 设计），日历 `i` 手动输入时额外校验真实日期范围
+- **tests/**：纯 Lua 测试（无 busted 依赖），`luajit tests/run.lua` 运行；run.lua 用 arg[0] 定位脚本目录而非 cwd
 
 ## v1 不做（留 v2）
 
@@ -467,3 +480,4 @@ PKG
 | capture 文件创建 | capture 时按需创建，不在 init 预建 | 避免污染非笔记会话 |
 | show 排序 | v1 不排序 | 用户输入顺序，简化实现 |
 | 重复任务 | v1 不解析 duration | scope 收敛，v2 扩展 |
+| 日期选择器 | 自研浮窗月历（移植 orgmode，MIT） | 用户明确要求 org 风格日历；调研确认 nvim-orgmode 日历本身即自研浮窗而非 snacks 组件；无成熟第三方日历插件可用（mini.calendar 不存在），外部候选 star 数过低。打破"零自研 UI"决策，UI 代码集中在 calendar.lua |

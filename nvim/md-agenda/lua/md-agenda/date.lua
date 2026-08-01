@@ -78,4 +78,63 @@ function M.expand_repeat(_when, _today)
   return nil
 end
 
+-- ========== 日历纯函数(浮窗月历用) ==========
+
+--- 判断闰年(公历)。
+--- @param y number
+--- @return boolean
+function M.is_leap_year(y)
+  return y % 400 == 0 or (y % 100 ~= 0 and y % 4 == 0)
+end
+
+--- 某月天数。
+--- @param y number
+--- @param m number  1-12
+--- @return number
+function M.days_in_month(y, m)
+  if m == 2 then return M.is_leap_year(y) and 29 or 28 end
+  if m == 4 or m == 6 or m == 9 or m == 11 then return 30 end
+  return 31
+end
+
+--- ISO 星期几:周一=1 .. 周日=7。
+--- @param y number
+--- @param m number
+--- @param d number
+--- @return number
+function M.iso_weekday(y, m, d)
+  local ts = os.time({ year = y, month = m, day = d })
+  local wday = tonumber(os.date("%w", ts)) -- 0=周日..6=周六
+  return (wday + 6) % 7 + 1
+end
+
+local function ends_with(s, suffix)
+  return #s >= #suffix and s:sub(-#suffix) == suffix
+end
+
+-- 本地化日期格式化: 临时切到 UTF-8 locale(如 zh_CN.UTF-8 → 中文月份名),
+-- 切换失败则回退 os.date。纯 Lua, 无 nvim 依赖。
+--- @param fmt string
+--- @param ts number|nil
+--- @return string
+function M.strftime(fmt, ts)
+  ts = ts or os.time()
+  local orig = os.setlocale(nil, "time")
+  if orig then
+    local utf8_locale
+    if ends_with(orig, ".UTF-8") or ends_with(orig, ".utf8") then
+      utf8_locale = orig
+    else
+      utf8_locale = orig:gsub("%.[^.]+$", "") .. ".UTF-8"
+    end
+    local changed = os.setlocale(utf8_locale, "time")
+    if changed then
+      local out = os.date(fmt, ts)
+      os.setlocale(orig, "time")
+      return out
+    end
+  end
+  return os.date(fmt, ts)
+end
+
 return M

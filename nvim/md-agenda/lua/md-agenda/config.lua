@@ -19,6 +19,12 @@ M.defaults = {
   -- 默认状态字符: [1]=todo 用于 :MdAgenda, [2]=done 用于 :MdAgendaDone
   default_states = { " ", "x" },
 
+  -- 浮窗日历: week_start 为 ISO 周起始(1=周一..7=周日), min_step 为分钟步长
+  calendar = {
+    week_start = 1,
+    min_step = 5,
+  },
+
   -- 默认键位
   keymaps = {
     capture = "<leader>mc",

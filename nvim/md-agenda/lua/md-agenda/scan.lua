@@ -2,8 +2,9 @@
 local M = {}
 
 -- task 首行 rg 正则 (rg 用 BRE/ERE 风格, 这里用 -e 传 PCRE-like)
--- ^- \[.\]\[.*\]   (尾空格确保是 task 而非普通 checkbox)
-local RG_PATTERN = "^- \\[.\\]\\[.*\\] "
+-- ^#+\s\[.\](\[.*\])+\s
+--   #+  = 任意标题级别; [c] 单字符状态; 其后一个或多个紧贴方括号(内容可空); 标题前须空白
+local RG_PATTERN = "^#+\\s\\[.\\](\\[.*\\])+\\s"
 
 --- 异步 rg 扫描目录下的 .md,收集所有 task 首行
 --- @param dirs string[] 目录列表(支持 ~)
@@ -24,19 +25,15 @@ function M.scan(dirs, cb)
 
   local function done()
     -- 解析 stdout 行: file:lnum:line
+    -- 非贪心取第一个 :lnum: 三元组; 行内容若含 :数字: 也不会干扰
+    -- (路径中含 : 时回溯仍可正确分界, 除非路径本身含 :数字:)
     for _, line in ipairs(stdout) do
-      -- 文件名可能含 ':' 但 lnum:line 紧跟在最后一个 ':' 后
-      local last_colon = line:match(".*():%d+%:")
-      if last_colon then
-        local head = line:sub(1, last_colon - 1)
-        local rest = line:sub(last_colon)
-        local lnum_str = rest:match("^:(%d+):")
-        if head and lnum_str then
-          local lnum = tonumber(lnum_str)
-          if lnum then
-            result[head] = result[head] or {}
-            table.insert(result[head], lnum)
-          end
+      local head, lnum_str = line:match("^(.-):(%d+):")
+      if head and lnum_str then
+        local lnum = tonumber(lnum_str)
+        if lnum then
+          result[head] = result[head] or {}
+          table.insert(result[head], lnum)
         end
       end
     end

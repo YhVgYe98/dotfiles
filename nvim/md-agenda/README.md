@@ -4,7 +4,7 @@
 
 ## 特性
 
-- **Task 语法**：`- [c][ts] 标题`，双方括号区分于普通 checkbox
+- **Task 语法**：`# [c][ts] 标题`（markdown 标题渲染，任意级别），`[c]` 后可跟多个紧贴方括号标记
 - **时间戳**：ISO 8601，支持三种活跃窗口 + 永久活跃
 - **Capture**：交互式模板，日期/时间通过浮窗月历选择（org 风格，hjkl 导航，`t` 输入时间），也可手动输入
 - **Agenda**：pipeline 式 API（收集 → 过滤 → 展示），高度可组合
@@ -12,36 +12,42 @@
 
 ## Task 语法
 
-行首严格匹配 `- [c][ts] 标题`（state 与 ts 间无空格，ts 与标题间一个空格）：
+行首匹配 `#+ [c][ts] 标题`（任意标题级别，如 `#`/`##`/`###`；`#` 后须空白）：
 
 ```
-- [ ][2026-08-01] 从这天开始一直活跃
-- [ ][/2026-08-31] 到这天为止活跃
-- [ ][2026-08-01/2026-08-31] 这段时间内活跃
-- [ ][] 永久活跃（ts 为空）
-- [x][2026-08-01] 已完成
+# [ ][2026-08-01] 从这天开始一直活跃
+# [ ][/2026-08-31] 到这天为止活跃
+# [ ][2026-08-01/2026-08-31] 这段时间内活跃
+# [ ][] 永久活跃（ts 为空）
+# [x][2026-08-01] 已完成
+# [x][2026-08-01][2026-08-01T10:00:00] 已完成（ts-end 完成时间戳）
 ```
 
-- `c` 是任意单字符状态（` `、`x`、`-`、自定义均可）
+- `[c]` 固定单字符状态（` `、`x`、`-`、自定义均可），其后可跟**一个或多个紧贴的方括号**（内容可为空），仅第一个用作时间窗口 ts，其余（如 ts-end）对解析透明、视为标题文本
+- 标记区后须空白，再接标题
 - `ts` 为空 `[]` 表示任意时间都活跃
 - `ts` 格式校验与 task 格式校验正交：ts 非法 → 该 task 不进 agenda（静默跳过）
 - 时间戳可省略时间部分：`[2026-08-01]` 等价于 `[2026-08-01T00:00:00]`
 - 支持区间：`[start/stop]`，两端均 ISO 8601
 - **不**支持 ISO 8601 duration（`P1W` 等），留待 v2
 
+### ts-end 完成时间戳
+
+`set_state` 是插件对 ts-end 的唯一感知点：`done=true` 时把第三个方括号写为当前时间戳（无则插入、有则刷新），`done=false` 时删除。agenda 解析/过滤完全忽略它，当作标题文本。
+
 ### Block 多行
 
 从匹配行起，到下一个匹配行或空行止，整块作为一个 task。多行内容归入 task body：
 
 ```
-- [ ][2026-08-01] 周报
-  详细说明第一行
-  详细说明第二行
+# [ ][2026-08-01] 周报
+   详细说明第一行
+   详细说明第二行
 
-- [x][2026-08-02] 另一个任务
+# [x][2026-08-02] 另一个任务
 ```
 
-缩进子 checkbox（`^  - [x]...`）不作为独立 task，归入父块 body。
+缩进子 checkbox（`  - [x]...`）不作为独立 task，归入父块 body。
 
 ## 安装
 
@@ -55,6 +61,7 @@
     { "<leader>mc", "<cmd>MdCapture<cr>", desc = "Capture task" },
     { "<leader>ma", "<cmd>MdAgenda<cr>", desc = "Agenda (todo)" },
     { "<leader>md", "<cmd>MdAgendaDone<cr>", desc = "Agenda (done)" },
+    { "<leader>mx", function() require("md-agenda").set_state("x", true) end, desc = "Mark done" },
   },
   opts = {
     scan_dirs = { "~/notes" },
@@ -77,7 +84,7 @@ require("md-agenda").setup({
   templates = {
     default = {
       desc = "Task",
-      template = "- [ ][%^{from}] %?",
+      template = "# [ ][%^{from}] %?",
     },
   },
 
@@ -95,6 +102,7 @@ require("md-agenda").setup({
     capture = "<leader>mc",
     agenda = "<leader>ma",
     agenda_done = "<leader>md",
+    set_state = "<leader>mx", -- set_state("x", true): 标记完成
   },
 })
 ```
@@ -125,6 +133,7 @@ M.show(active)
 | `exclude_by_states(items, states)` | 排除 state ∈ `states` |
 | `filter_active(items, begin, end)` | 保留活跃窗口 ∩ `[begin, end]` ≠ ∅ 的（闭-闭，天粒度，ISO `"YYYY-MM-DD"`） |
 | `show(items)` | snacks.picker 渲染，`<CR>` 跳转 file:lnum:col |
+| `set_state(char, done)` | 光标在任务标题行时：改状态为 `char`；`done=true` 把 ts-end 刷新为当前时间（无则插入），`done=false` 删除 ts-end |
 
 ### 活跃窗口规则
 

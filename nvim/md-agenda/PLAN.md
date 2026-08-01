@@ -8,18 +8,18 @@
 
 ## Task 语法（严格）
 
-行首严格匹配：
+行首匹配：
 
 ```
-- [c][ts] 标题
+#+ [c][ts] 标题
 ```
 
-Lua 模式：`^- %[(.)%]%[(.-)%] `
+Lua 模式：`^#+%s%[(.)%]%[(.-)%](.*)$`（rg 预过滤：`^#+\s\[.\](\[.*\])+\s`）
 
-- 行首 `- `（列 0，无缩进）
-- `[c]`：`c` 为任意单字符状态（` `、`x`、`-`、自定义均可）
-- `[ts]`：紧贴 `[c]`，中间无空格
-- `]` 后必须一个空格，再接标题
+- 行首 `#+`（任意标题级别，markdown 可渲染），`#` 后须空白
+- `[c]`：`c` 为任意单字符状态（` `、`x`、`-`、自定义均可），紧贴其后
+- `[c]` 后可跟**一个或多个紧贴的方括号**（内容可为空），仅第一个用作 ts，其余（如 ts-end）对解析透明、视为标题文本
+- 标记区后须空白，再接标题
 - `ts` 可为空 `[]`（= 任意时间都活跃）
 
 **ts 4 种合法形式**（由 `date.lua` 校验，与 task 格式正交）：
@@ -43,9 +43,9 @@ ts 非法 → `when = nil` → 该 task 不进 agenda（静默跳过，不报错
 
 从匹配行起，到下一个匹配行或空行止，整块作为一个 task。多行内容归入 task body。
 
-- 起始：行首匹配 `^- %[(.)%]%[(.-)%] `（任何 state、任何 ts，含空 `[]`）
+- 起始：行首匹配 `^#+%s%[(.)%]%[(.-)%] `（任何 state、任何 ts，含空 `[]`）
 - 结束：下一个此类匹配行，或空行
-- 缩进子 checkbox（`^  - [x]...`）不匹配 `^-`，归入父块 body，不作为独立 task
+- 缩进子 checkbox（`^  - [x]...`）不匹配 `#+ [c][ts]`，归入父块 body，不作为独立 task
 - `collect()` 只保留 ts 能被 date.lua 成功解析（含空 `[]`→always）的块；ts 非法 → when=nil → 不进 agenda
 
 ## 活跃窗口与 filter_active
@@ -77,6 +77,7 @@ nvim/md-agenda/                  插件根目录（lazy dir= 指向此处）
 │       ├── scan.lua    异步 rg + readfile 切 block
 │       ├── parse.lua   block → item 结构
 │       ├── agenda.lua  collect/filter_by_states/exclude_by_states/filter_active
+│       ├── edit.lua    任务行编辑: set_state 改状态字符 + 读写 ts-end（对 ts-end 的唯一感知点）
 │       ├── ui.lua      snacks 适配层（唯一接触 snacks 的模块）
 │       ├── calendar.lua 浮窗月历（移植 orgmode，纯逻辑可单测）
 │       └── date.lua    ISO 8601 解析/格式化/校验 + 日历纯函数
@@ -94,13 +95,14 @@ M.defaults = {
   scan_dirs = { "~/notes" },
   capture_file = "~/notes/journal/%Y-%m-%d.md",
   templates = {
-    default = { desc = "Task", template = "- [ ][%^{from}] %?" },
+    default = { desc = "Task", template = "# [ ][%^{from}] %?" },
   },
   default_states = { " ", "x" },
   keymaps = {
     capture = "<leader>mc",
     agenda = "<leader>ma",
     agenda_done = "<leader>md",
+    set_state = "<leader>mx", -- set_state("x", true)
   },
 }
 function M.setup(opts) -- deep-merge 用户 opts 到 defaults，返回最终 config
@@ -167,10 +169,11 @@ return M
 ```lua
 local M = {}
 
--- 异步 rg 扫 scan_dirs 下所有 .md，找出所有匹配 ^- \[.\]\[.*\] 的行
+-- 异步 rg 扫 scan_dirs 下所有 .md，找出所有匹配 ^#+ \[.\]\[.*\] 的行
 -- 回调 cb(file_lnums)，file_lnums = { [file] = {lnum1, lnum2, ...}, ... }
 -- rg 参数：-n --with-filename --color=never -t markdown -e <pattern> <dirs>
--- pattern 转义为 rg regex: ^- \[.\]\[.*\]   (注意 rg 中 \[ 需转义)
+-- pattern 转义为 rg regex: ^#+\s\[.\](\[.*\])+\s
+--   #+ = 任意标题级别; [c] 单字符状态; 一个或多个紧贴方括号(内容可空); 标题前须空白
 function M.scan(dirs, cb)
 
 -- 给定 file 和命中的起始 lnum 列表，readfile 后切 block
@@ -181,7 +184,7 @@ function M.split_blocks(file, lnums)
 return M
 ```
 
-**scan**：用 `vim.system({"rg", ...}, {stdout=...})` 异步；收集输出行解析为 `file:lnum:line`。pattern 用 `^- \[.\]\[.*\] `（注意尾空格，确保是 task 而非普通 checkbox）。`-t markdown` 限定文件类型。
+**scan**：用 `vim.system({"rg", ...}, {stdout=...})` 异步；收集输出行解析为 `file:lnum:line`。pattern 用 `^#+\s\[.\](\[.*\])+\s`（`.*` 贪心可吞多个括号，仅作匹配预过滤）。`-t markdown` 限定文件类型。
 
 **split_blocks**：对每个文件 `vim.fn.readfile(file)` 一次，按命中 lnum 切块：从命中行起逐行累积，遇下一命中 lnum 或空行停止。返回 blocks。
 
@@ -195,12 +198,13 @@ local date = require("md-agenda.date")
 -- block = {file, start_lnum, end_lnum, lines}
 -- 返回 item 或 nil（ts 非法）
 function M.parse_block(block)
-  -- 1. 第一行匹配 ^- %[(.)%]%[(.-)%] (.+)
-  --    state = capture 1, ts = capture 2, title = capture 3
-  -- 2. body = lines[2..] join "\n"
-  -- 3. when = date.parse_when(ts)
-  -- 4. 若 when == nil → 返回 nil
-  -- 5. 返回 {state=, title=, body=, when=, file=, lnum=start_lnum, col=1}
+  -- 1. 第一行匹配 ^#+%s%[(.)%]%[(.-)%](.*)$
+  --    state = capture 1, ts = capture 2, rest = capture 3
+  -- 2. title = rest 去前导空白（其余方括号如 ts-end 视为标题文本）
+  -- 3. body = lines[2..] join "\n"
+  -- 4. when = date.parse_when(ts)
+  -- 5. 若 when == nil → 返回 nil
+  -- 6. 返回 {state=, title=, body=, when=, file=, lnum=start_lnum, col=1}
 
 return M
 ```
@@ -218,13 +222,44 @@ return M
 }
 ```
 
+### edit.lua
+
+```lua
+local M = {}
+local date = require("md-agenda.date")
+
+-- 完整任务行模式（set_state 用）：
+--   #+       = 标题级别（重建时保留）
+--   [c]      = 单字符状态
+--   [ts]     = 时间窗口（第一个方括号）
+--   [ts-end] = 紧贴 ts 的第三个方括号（内容可空），本模块读写
+--   标题     = 标记区后，以空白开头
+local LINE_PAT = "^(#+)%s%[(.)%]%[(.-)%](%[[^%]]*%])?(%s+.*)$"
+
+-- 修改光标所在任务行的状态字符，并写入/删除 ts-end
+-- char: 新的状态字符（单字符）
+-- done: true=ts-end 刷新为当前时间（无则插入）；false=删除 ts-end
+function M.set_state(char, done)
+  -- 1. 校验 char 为单字符
+  -- 2. 取光标当前行，匹配 LINE_PAT；不匹配 → notify 返回
+  -- 3. 重建：lead .. " " .. "["..char.."]" .. "["..ts.."]"
+  --         .. (done and "["..date.now_ts().."]" or "") .. rest
+  -- 4. nvim_buf_set_text 整行替换（光标由 nvim 自动调整）
+end
+
+return M
+```
+
+- 全插件对 ts-end 的唯一感知点：解析/agenda 数据层对 ts-end 完全透明
+- 位置式第三括号，不做内容校验；紧贴标题的方括号会被视为 ts-end（文档注明，现实几乎不出现）
+- 已在 ts-end 时 done=true → 刷新为当前时间（不保留原完成时间）；done=false → 删除
+
 ### agenda.lua
 
 ```lua
 local M = {}
 local scan = require("md-agenda.scan")
 local parse = require("md-agenda.parse")
-
 -- 收集所有顶级带 ts 的 task block
 -- 扫 scan_dirs → 切 block → parse → 过滤掉 nil
 -- 返回 items 列表
@@ -363,6 +398,7 @@ local M = {}
 local config = require("md-agenda.config")
 local agenda = require("md-agenda.agenda")
 local capture = require("md-agenda.capture")
+local edit = require("md-agenda.edit")
 local ui = require("md-agenda.ui")
 
 M.config = {}
@@ -373,7 +409,7 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("MdCapture", function() capture.capture() end, { desc = "Capture task" })
   vim.api.nvim_create_user_command("MdAgenda", function() M.show(M.filter_by_states(M.collect(), M.config.default_states[1])) end, { desc = "Agenda (todo)" })
   vim.api.nvim_create_user_command("MdAgendaDone", function() M.show(M.filter_by_states(M.collect(), M.config.default_states[2])) end, { desc = "Agenda (done)" })
-  -- 绑定默认键位
+  -- 绑定默认键位（含 set_state → "x", true）
   -- ... M.config.keymaps
 end
 
@@ -384,6 +420,7 @@ M.exclude_by_states = agenda.exclude_by_states
 M.filter_active = agenda.filter_active
 M.show = ui.show
 M.capture = capture.capture
+M.set_state = edit.set_state
 
 return M
 ```
@@ -412,7 +449,8 @@ spec 放在 `nvim/fnl/plugins/ft/markdown.fnl`（markdown 文件类型相关插�
            :capture_file "~/notes/journal/%Y-%m-%d.md"}
     :keys [(mt ["<leader>mc" "<cmd>MdCapture<cr>"] :desc "Capture task")
            (mt ["<leader>ma" "<cmd>MdAgenda<cr>"] :desc "Agenda (todo)")
-           (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")]))
+           (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")
+           (mt ["<leader>mx" #((call-at :md-agenda :set_state) "x" true)] :desc "Mark done (md-agenda)")]))
 ```
 
 注意：`dir` 用本地路径指向 `nvim/md-agenda`，插件代码在该目录下。`:opts` 直接传给 `setup`。
@@ -431,13 +469,14 @@ spec 放在 `nvim/fnl/plugins/ft/markdown.fnl`（markdown 文件类型相关插�
 10. ✅ 校验：6 个测试套件 107 个测试全部通过；端到端 collect/filter/show 验证
 11. ✅ **calendar.lua** — 浮窗月历（移植 orgmode，capture 日期选择器从文本对话框升级为月历）
 12. ✅ 校验：tests/ 23 个测试全部通过（luajit tests/run.lua）；headless 验证打开/导航/时间模式/取消/翻月/from/range 全流程（tests/ 为本地开发用，不入库）
+13. ✅ **edit.lua** — set_state 改状态字符 + 读写 ts-end；语法切换为 `# [c][ts] 标题`（任意标题级别，标记区可扩展）
 
 ## 实现过程中的关键修复
 
 - **date.lua**：Lua 模式 `?` 不能修饰捕获组 `(T...)`，改用双模式分别匹配
 - **scan.lua**：`vim.fn.readfile` 不能在 `vim.system` 的 fast event 回调中调用，改用 `io.lines`
 - **capture.lua**：Lua 模式无 alternation，`render` 改用手动扫描占位符；`%^{from}` 不再加方括号（模板的 `[]` 已提供）；行尾 cursor 用 `startinsert!` 而非 `startinsert`
-- **config.lua**：默认模板 `- [ ][%^{from}] %?`（state 与 ts 间无空格，匹配 task 语法）
+- **config.lua**：默认模板 `# [ ][%^{from}] %?`（state 与 ts 间无空格，匹配 task 语法）
 - **ui.lua**：item 用 `data` 字段存跳转信息（不用 `file`/`pos`，避免触发 snacks 文件格式器）；`format = "text"` + `layout = { preset = "select" }` 实现单框无预览
 - **calendar.lua**（移植自 nvim-orgmode `objects/calendar.lua`，MIT）：
   - 浮窗 36x14 居中，scratch buffer + bufhidden=wipe；BufWipeout 统一兜底 dispose（取消 → cb(nil)）
@@ -464,7 +503,9 @@ spec 放在 `nvim/fnl/plugins/ft/markdown.fnl`（markdown 文件类型相关插�
 |---|---|---|
 | 时间戳分隔符 | 方括号 `[...]` | 渲染安全、grep 友好、与 org inactive 约定吻合 |
 | 时间语义表示 | 单 `when` 字段 + 3 种形式 + always | 比 SCHEDULED/DEADLINE/START 三字段更简洁 |
-| task 语法 | 严格 `- [c][ts] title`（双方括号） | 与普通 checkbox 明确区分 |
+| task 语法 | `# [c][ts] 标题`，任意标题级别，`[c]` 后多个紧贴方括号 | markdown 可渲染（标题），与 checkbox 任务列表语义分离；标记区可扩展 |
+| ts-end | 位置式第三括号，仅 `edit.lua/set_state` 感知 | 数据层不感知，`set_state` 按位置读写，无内容校验 |
+| 标题边界 | 标记区后须空白 | 标记区与标题解耦，标题可含任意方括号 |
 | block 边界 | 任何顶级 task 行（不论 state/ts） | 避免同状态块无空行时误合并 |
 | 默认命令 | 方案 A（纯状态，不套时间） | 保持四函数可组合哲学 |
 | UI | 复用 snacks.picker，集中在 ui.lua | 零自研 UI，解耦 snacks |

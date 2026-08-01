@@ -12,7 +12,7 @@ M.defaults = {
   templates = {
     default = {
       desc = "Task",
-      template = "- [ ][%^{from}] %?",
+      template = "# [ ][%^{from}] %?",
     },
   },
 
@@ -30,6 +30,7 @@ M.defaults = {
     capture = "<leader>mc",
     agenda = "<leader>ma",
     agenda_done = "<leader>md",
+    set_state = "<leader>mx",
   },
 }
 

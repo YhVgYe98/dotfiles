@@ -4,6 +4,7 @@ local M = {}
 local config = require("md-agenda.config")
 local agenda = require("md-agenda.agenda")
 local capture_mod = require("md-agenda.capture")
+local edit = require("md-agenda.edit")
 local ui = require("md-agenda.ui")
 
 --- 初始化插件。
@@ -32,6 +33,9 @@ function M.setup(opts)
   if keymaps.agenda_done then
     vim.keymap.set("n", keymaps.agenda_done, "<cmd>MdAgendaDone<cr>", { desc = "Agenda (done)" })
   end
+  if keymaps.set_state then
+    vim.keymap.set("n", keymaps.set_state, function() M.set_state("x", true) end, { desc = "Mark done (md-agenda)" })
+  end
 end
 
 -- 公共 API
@@ -41,5 +45,6 @@ M.exclude_by_states = agenda.exclude_by_states
 M.filter_active = agenda.filter_active
 M.show = ui.show
 M.capture = capture_mod.capture
+M.set_state = edit.set_state
 
 return M

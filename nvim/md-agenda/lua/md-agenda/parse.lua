@@ -2,11 +2,13 @@
 local M = {}
 local date = require("md-agenda.date")
 
--- task 首行模式: ^- [c][ts] title
+-- task 首行模式: ^#+ [c][ts] 标题
+--   #+  = 任意标题级别(如 # / ## / ###)
 --   c   = 单字符状态
---   ts  = 任意字符(含空),由 date.parse_when 校验
---   标题 = 第一个空格后的内容
-local LINE_PAT = "^%- %[(.)%]%[(.-)%] (.+)$"
+--   ts  = 第一个方括号内容(可为空),由 date.parse_when 校验
+--   标题 = 标记区后的内容,去前导空白
+--   其余紧贴方括号(如 [ts-end] 完成时间戳)对解析透明,视为标题文本
+local LINE_PAT = "^#+%s%[(.)%]%[(.-)%](.*)$"
 
 --- 解析单个 block
 --- @param block table {file, start_lnum, end_lnum, lines={...}}
@@ -15,11 +17,13 @@ function M.parse_block(block)
   local first = block.lines[1]
   if not first then return nil end
 
-  local state, ts, title = first:match(LINE_PAT)
+  local state, ts, rest = first:match(LINE_PAT)
   if not state then return nil end
 
   local when = date.parse_when(ts)
   if when == nil then return nil end
+
+  local title = rest:match("^%s*(.*)") or ""
 
   local body
   if #block.lines > 1 then

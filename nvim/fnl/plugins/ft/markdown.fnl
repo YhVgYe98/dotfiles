@@ -41,6 +41,7 @@
            :capture_file "~/notes/journal/%Y-%m-%d.md"}
     :keys [(mt ["<leader>mc" "<cmd>MdCapture<cr>"] :desc "Capture task")
            (mt ["<leader>ma" "<cmd>MdAgenda<cr>"] :desc "Agenda (todo)")
-           (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")]))
+           (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")
+           (mt ["<leader>mx" #((call-at :md-agenda :set_state) "x" true)] :desc "Mark done (md-agenda)")]))
 
 PKG

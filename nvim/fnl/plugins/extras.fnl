@@ -77,4 +77,25 @@
                      :prompt_for_file_name false}}          ; 不提示输入文件名, 用时间戳
     :keys [(mt ["<leader>pi" "<cmd>PasteImage<cr>"] :desc "Paste image from clipboard")]))
 
+;;;;;;;;;;;;;; remote-nvim ;;;;;;;;;;;;;;
+;; VSCode 式 SSH 远程开发: 远端装独立 nvim + 同步本地 config, 跑 headless server, 本地 TUI 连接
+;; 命令: :RemoteStart / :RemoteStop / :RemoteInfo / :RemoteCleanup / :RemoteConfigDel / :RemoteLog
+;; 首次连接远端会: 装 nvim release → 同步本地 config → lazy 联网装插件 → mason 联网装 LSP server
+;; 默认配置即等同于 VSCode Remote-SSH 的远端 bootstrap 行为
+(table.insert PKG (mt
+    ["amitds1997/remote-nvim.nvim"]
+    :version "*"
+    :lazy true
+    :cmd ["RemoteStart" "RemoteStop" "RemoteInfo"
+          "RemoteCleanup" "RemoteConfigDel" "RemoteLog"]
+    :dependencies ["nvim-lua/plenary.nvim"
+                   "MunifTanjim/nui.nvim"
+                   "nvim-telescope/telescope.nvim"]
+    :keys [(mt ["<leader>rs" "<cmd>RemoteStart<cr>"]    :desc "Remote: Start")
+           (mt ["<leader>rS" "<cmd>RemoteStop<cr>"]     :desc "Remote: Stop")
+           (mt ["<leader>ri" "<cmd>RemoteInfo<cr>"]     :desc "Remote: Info")
+           (mt ["<leader>rC" "<cmd>RemoteCleanup<cr>"]  :desc "Remote: Cleanup")
+           (mt ["<leader>rl" "<cmd>RemoteLog<cr>"]      :desc "Remote: Log")]
+    :opts {}))
+
 PKG

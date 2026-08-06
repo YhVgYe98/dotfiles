@@ -38,7 +38,9 @@
     :ft ["markdown"]
     :cmd ["MdCapture" "MdAgenda" "MdAgendaDone"]
     :opts {:scan_dirs ["~/notes"]
-           :capture_file "~/notes/journal/%Y-%m-%d.md"}
+           :capture_file "~/notes/journal/%Y-%m-%d.md"
+           :templates {:default {:desc "Task" :template "# [ ][%^{from}] %?"}
+                       :heading {:desc "Heading" :template "# %?"}}}
     :keys [(mt ["<leader>mc" "<cmd>MdCapture<cr>"] :desc "Capture task")
            (mt ["<leader>ma" "<cmd>MdAgenda<cr>"] :desc "Agenda (todo)")
            (mt ["<leader>md" "<cmd>MdAgendaDone<cr>"] :desc "Agenda (done)")

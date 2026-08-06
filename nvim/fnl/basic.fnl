@@ -69,8 +69,6 @@
            (when (= (vim.fn.isdirectory dir) 0)
              (pcall vim.fn.mkdir dir "p")))})
 
-(vim.cmd "aunmenu PopUp.How-to\\ disable\\ mouse")
-(vim.cmd "aunmenu PopUp.-2-")
 
 ;;;;;;;;; KEYMAPS ;;;;;;;;;;;
 (set vim.g.mapleader " ")

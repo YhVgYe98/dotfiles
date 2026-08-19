@@ -5,7 +5,7 @@ local config = require("md-agenda.config")
 local agenda = require("md-agenda.agenda")
 local capture_mod = require("md-agenda.capture")
 local edit = require("md-agenda.edit")
-local ui = require("md-agenda.ui")
+local bulk_edit = require("md-agenda.bulk_edit")
 
 --- 初始化插件。
 --- @param opts table|nil
@@ -14,18 +14,18 @@ function M.setup(opts)
 
   -- 命令注册
   local states = config.get().default_states or { " ", "x" }
-  vim.api.nvim_create_user_command("MdCapture", function() M.capture() end, { desc = "Capture task" })
+  vim.api.nvim_create_user_command("MdTask", function() M.task() end, { desc = "Insert task at cursor" })
   vim.api.nvim_create_user_command("MdAgenda", function()
-    M.show(M.filter_by_states(M.collect(), states[1] or " "))
-  end, { desc = "Agenda (todo)" })
+    M.bulk_edit(states[1] or " ")
+  end, { desc = "Agenda (todo, editable)" })
   vim.api.nvim_create_user_command("MdAgendaDone", function()
-    M.show(M.filter_by_states(M.collect(), states[2] or "x"))
-  end, { desc = "Agenda (done)" })
+    M.bulk_edit(states[2] or "x")
+  end, { desc = "Agenda (done, editable)" })
 
   -- 默认键位
   local keymaps = config.get().keymaps or {}
-  if keymaps.capture then
-    vim.keymap.set("n", keymaps.capture, "<cmd>MdCapture<cr>", { desc = "Capture task" })
+  if keymaps.task then
+    vim.keymap.set("n", keymaps.task, "<cmd>MdTask<cr>", { desc = "Insert task (md-agenda)" })
   end
   if keymaps.agenda then
     vim.keymap.set("n", keymaps.agenda, "<cmd>MdAgenda<cr>", { desc = "Agenda (todo)" })
@@ -43,8 +43,8 @@ M.collect = agenda.collect
 M.filter_by_states = agenda.filter_by_states
 M.exclude_by_states = agenda.exclude_by_states
 M.filter_active = agenda.filter_active
-M.show = ui.show
-M.capture = capture_mod.capture
+M.bulk_edit = bulk_edit.open
+M.task = capture_mod.task
 M.set_state = edit.set_state
 
 return M

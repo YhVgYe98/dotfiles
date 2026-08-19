@@ -28,8 +28,11 @@ function M.collect()
     done = true
   end)
 
-  -- 等待异步 rg 完成
-  vim.wait(10000, function() return done end, 50)
+  -- 等待异步 rg 完成(超时则提示)
+  local ok = vim.wait(10000, function() return done end, 50)
+  if not ok then
+    vim.notify("md-agenda: scan 超时,结果可能不完整", vim.log.levels.WARN)
+  end
   return items
 end
 

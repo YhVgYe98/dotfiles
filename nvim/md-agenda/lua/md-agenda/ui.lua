@@ -16,36 +16,6 @@ local function has_input()
   return ok and snacks.input ~= nil
 end
 
---- 用 snacks.picker 渲染 items 列表,<CR> 跳转到 file:lnum:col。
---- 单框无预览,每项显示 task 首行原文。
---- @param items table[]  parse 返回的 item 列表
-function M.show(items)
-  if not has_picker() then
-    vim.notify("md-agenda: snacks.picker 不可用,无法显示 agenda", vim.log.levels.ERROR)
-    return
-  end
-
-  local picker = require("snacks.picker")
-  picker.pick({
-    items = vim.tbl_map(function(it)
-      return {
-        text = it.raw or ("- [" .. it.state .. "] " .. it.title),
-        data = { file = it.file, lnum = it.lnum, col = it.col - 1 },
-      }
-    end, items),
-    title = "md-agenda",
-    format = "text",
-    layout = { preset = "select" },
-    confirm = function(pick, item)
-      pick:close()
-      if not item or not item.data then return end
-      vim.cmd("edit " .. vim.fn.fnameescape(item.data.file))
-      vim.api.nvim_win_set_cursor(0, { item.data.lnum, item.data.col })
-      vim.cmd("normal! zv")
-    end,
-  })
-end
-
 --- 交互式日期/时间输入:优先浮窗月历,回退文本输入。
 --- 只选日期则不带时间(与 orgmode 行为一致)。
 --- @param prompt string

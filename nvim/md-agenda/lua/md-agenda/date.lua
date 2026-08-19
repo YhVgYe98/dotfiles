@@ -6,18 +6,23 @@ local M = {}
 local DATE_PAT = "^%d%d%d%d%-%d%d%-%d%d$"
 local DATETIME_PAT = "^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%d$"
 
+--- 校验单点时间戳字符串。
+--- @param s string
+--- @return string|nil  合法则返回原串,非法返回 nil
 function M.parse_point(s)
   if type(s) ~= "string" then return nil end
   if s:match(DATE_PAT) or s:match(DATETIME_PAT) then return s end
   return nil
 end
 
--- 解析 ts 内容(不含外层 []),返回 when 结构或 nil
---   ""          -> {kind="always"}
---   "t"         -> {kind="from",   date=t}
---   "/t"        -> {kind="until",  date=t}
---   "s/e"       -> {kind="range",  start=s, stop=e}
---   非法        -> nil
+--- 解析 ts 内容(不含外层 []),返回 when 结构或 nil。
+---   ""          -> {kind="always"}
+---   "t"         -> {kind="from",   date=t}
+---   "/t"        -> {kind="until",  date=t}
+---   "s/e"       -> {kind="range",  start=s, stop=e}
+---   非法        -> nil
+--- @param s string|nil
+--- @return table|nil
 function M.parse_when(s)
   if s == nil then return nil end
   if s == "" then return { kind = "always" } end
@@ -44,13 +49,17 @@ function M.parse_when(s)
   return nil
 end
 
--- 剥到天粒度 key "YYYY-MM-DD",用于 filter_active 比较
+--- 剥到天粒度 key "YYYY-MM-DD",用于 filter_active 比较。
+--- @param s string
+--- @return string|nil
 function M.to_date_key(s)
   if type(s) ~= "string" then return nil end
   return s:sub(1, 10)
 end
 
--- 生成 when 的人类可读描述,用于 picker 文本
+--- 生成 when 的人类可读描述,用于 picker 文本。
+--- @param when table|nil
+--- @return string
 function M.describe_when(when)
   if not when then return "?" end
   local k = when.kind
@@ -63,17 +72,22 @@ function M.describe_when(when)
   return "?"
 end
 
--- 格式化当前时间为 ISO 日期 "YYYY-MM-DD"
+--- 格式化当前时间为 ISO 日期 "YYYY-MM-DD"。
+--- @return string
 function M.now_date()
   return os.date("%Y-%m-%d")
 end
 
--- 格式化当前时间为 ISO 时间戳 "YYYY-MM-DDThh:mm:ss"
+--- 格式化当前时间为 ISO 时间戳 "YYYY-MM-DDThh:mm:ss"。
+--- @return string
 function M.now_ts()
   return os.date("%Y-%m-%dT%H:%M:%S")
 end
 
--- v2 占位:展开重复任务(duration 如 P1W)。v1 始终返回 nil。
+--- v2 占位:展开重复任务(duration 如 P1W)。v1 始终返回 nil。
+--- @param _when table
+--- @param _today string
+--- @return table|nil  v2: 返回展开后的 when 列表;v1 始终 nil
 function M.expand_repeat(_when, _today)
   return nil
 end

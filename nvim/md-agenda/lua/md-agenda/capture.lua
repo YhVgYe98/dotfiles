@@ -1,4 +1,4 @@
--- capture: 模板渲染 + 目标文件解析 + 追加。
+-- task 模板渲染 + capture_file 路径解析 + 光标行插入。
 local M = {}
 local date = require("md-agenda.date")
 local ui = require("md-agenda.ui")
@@ -119,6 +119,7 @@ function M.render(template, cb)
 end
 
 --- 解析 capture_file (strftime 模板) → 绝对路径。
+--- 供 bulk_edit.writeback 在 :w 时现算(不再由本模块写入)。
 --- @return string
 function M.resolve_target_file()
   local cfg = config.get()
@@ -127,47 +128,10 @@ function M.resolve_target_file()
   return vim.fn.expand(expanded)
 end
 
---- 追加到文件末尾,保证前空行 + 尾空行规则。
---- @param path string  绝对路径
---- @param text string  要追加的内容(不含尾换行)
---- @return number  追加内容首行在文件中的行号(1-based)
-function M.append_to_file(path, text)
-  local text_lines = vim.split(text, "\n")
-
-  if vim.fn.filereadable(path) == 0 then
-    local dir = vim.fn.fnamemodify(path, ":h")
-    vim.fn.mkdir(dir, "p")
-    local out = vim.list_extend({}, text_lines)
-    table.insert(out, "")
-    vim.fn.writefile(out, path)
-    return 1
-  end
-
-  local lines = vim.fn.readfile(path) or {}
-  -- 去尾部空行
-  while #lines > 0 and lines[#lines] == "" do
-    table.remove(lines)
-  end
-
-  if #lines == 0 then
-    local out = vim.list_extend({}, text_lines)
-    table.insert(out, "")
-    vim.fn.writefile(out, path)
-    return 1
-  end
-
-  -- 前空行 + content + 尾空行
-  local start = #lines + 2  -- +1 跳过原末行, +1 空行
-  local out = vim.list_extend({}, lines)
-  table.insert(out, "")
-  for _, l in ipairs(text_lines) do table.insert(out, l) end
-  table.insert(out, "")
-  vim.fn.writefile(out, path)
-  return start
-end
-
---- 执行 capture:选模板 → 渲染 → 追加 → 打开文件定位光标。
-function M.capture()
+--- 执行 task 插入:选模板 → 渲染 → 在当前 buffer 光标行上方插入 → 定位光标。
+--- 不打开目标文件、不写盘;若在 bulk buffer 的 orphan 区插入, :w 时由 bulk_edit 路由到 capture_file。
+--- 在普通 .md 文件中插入则由用户 :w 保存;在代码 buffer 中插入需用户自负责(md-agenda 不扫非 .md)。
+function M.task()
   local cfg = config.get()
   local templates = cfg.templates or {}
   if not next(templates) then
@@ -175,21 +139,28 @@ function M.capture()
     return
   end
 
+  if not vim.bo.modifiable then
+    vim.notify("md-agenda: 当前 buffer 不可修改", vim.log.levels.WARN)
+    return
+  end
+
   ui.pick_template(templates, function(_key, tpl)
     M.render(tpl.template, function(text, cursor)
-      local path = M.resolve_target_file()
-      local start_lnum = M.append_to_file(path, text)
-      vim.cmd("edit " .. vim.fn.fnameescape(path))
+      -- 在光标行上方插入 text 的多行
+      local lines = vim.split(text, "\n", { plain = true })
+      local row = vim.api.nvim_win_get_cursor(0)[1]  -- 1-based
+      vim.api.nvim_buf_set_lines(0, row - 1, row - 1, false, lines)
 
-      -- 计算 cursor 在 text 中的行/列偏移
+      -- 计算 %? 在新插入文本中的行/列偏移
       local row_off, col = 0, 0
       if cursor then
         local before = text:sub(1, cursor - 1)
         for _ in before:gmatch("\n") do row_off = row_off + 1 end
         col = #before:match("([^\n]*)$")
       end
-      local lnum = start_lnum + row_off
-      vim.api.nvim_win_set_cursor(0, { lnum, col })
+      local new_row = row + row_off  -- 插入后 %? 所在行(1-based)
+      vim.api.nvim_win_set_cursor(0, { new_row, col })
+
       -- 行尾(col >= 行长)用 startinsert! (A 语义, 行尾 append);
       -- 否则 startinsert (i 语义, 字符前插入)。避免 nvim 把行尾 col clamp 到最后字符。
       local line_len = #vim.api.nvim_get_current_line()

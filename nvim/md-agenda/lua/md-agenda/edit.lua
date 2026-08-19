@@ -5,7 +5,8 @@ local date = require("md-agenda.date")
 
 -- 前缀模式: #+ [c][ts] + tail
 --   tail = 紧贴 ts 的可选 ts-end 方括号 + 空白 + 标题
--- 注意: 不用 (%[[^%]]*%])? 可选组, Lua 模式捕获组后跟 ? 无法正确回溯
+--   lead = 捕获 #+ 用于回写
+--   注意: 与 parse.lua 的 LINE_PAT 同源(仅多 lead 捕获组),修改时需同步
 local LINE_PAT = "^(#+)%s%[(.)%]%[(.-)%](.*)$"
 
 --- 解析任务行,切出 ts-end 与标题部分。

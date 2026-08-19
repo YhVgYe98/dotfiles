@@ -5,7 +5,7 @@ M.defaults = {
   -- agenda 扫描的目录列表(rg 递归扫 .md)
   scan_dirs = { "~/notes" },
 
-  -- capture 写入文件。支持 strftime 模板(如 %Y-%m-%d),capture 时现算
+  -- bulk buffer orphan 新 task 在 :w 时追加到此文件。支持 strftime 模板
   capture_file = "~/notes/journal/%Y-%m-%d.md",
 
   -- capture 模板。键为标识,值为 {desc=, template=}
@@ -27,7 +27,7 @@ M.defaults = {
 
   -- 默认键位
   keymaps = {
-    capture = "<leader>mc",
+    task = "<leader>mt",
     agenda = "<leader>ma",
     agenda_done = "<leader>md",
     set_state = "<leader>mx",

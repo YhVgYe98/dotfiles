@@ -27,6 +27,7 @@
     :lazy true
     :ft ["markdown"]
     :cmd ["MarkdownPreview" "MarkdownPreviewStop" "MarkdownPreviewToggle"]
+    :keys [(mt ["<leader>mp" "<cmd>MarkdownPreviewToggle<cr>"] :desc "Preview toggle")]
     :build ":call mkdp#util#install()"))  ; 下载预编译 binary, 无需 node/yarn
 
 ;;;;;;;;;; md-agenda ;;;;;;;;;;;;;

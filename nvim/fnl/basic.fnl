@@ -65,8 +65,10 @@
     :desc "Create father dir before write file"
     :group (vim.api.nvim_create_augroup "auto_create_dir" {:clear true})
     :callback
-        #(let [dir (vim.fn.expand "<afile>:p:h")]
-           (when (= (vim.fn.isdirectory dir) 0)
+        #(let [path (vim.fn.expand "<afile>")
+               dir (vim.fn.expand "<afile>:p:h")]
+           (when (and (= (path:find "^%a+://") nil)
+                      (= (vim.fn.isdirectory dir) 0))
              (pcall vim.fn.mkdir dir "p")))})
 
 

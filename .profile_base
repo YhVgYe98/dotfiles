@@ -27,3 +27,9 @@ alias tmuxa='tmux new-session -A -s main'
 export GPG_TTY=$(tty)
 
 export GOPROXY=https://goproxy.cn,direct
+
+alias pi='npx -y @earendil-works/pi-coding-agent'
+alias pi-update='npx -y @earendil-works/pi-coding-agent@latest'
+alias pi-web='npx -y @agegr/pi-web'
+alias pi-web-update='npx -y @agegr/pi-web@latest'
+

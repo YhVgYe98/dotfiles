@@ -1,122 +1,152 @@
 # install arch linux
 
+> 目的：换机后快速安装必要程序、通用软件和实用组件。
+
 ## archinstall configure:
 
 + btrfs
 + disable swap on zram
-+ grub2
-+ linux-zen
++ grub2 (os-prober efibootmgr)
++ linux-zen + linux-zen-headers (备用内核 linux linux-lts，各带 headers)
++ linux-firmware amd-ucode
 + plasma-meta
-+ bluetooth
++ bluetooth (bluez-utils)
 + pipewire
-+ printer service
-+ power-profiles-daemon (tlp tlp-pd for laptop)
++ printer service (cups system-config-printer)
++ power-profiles-daemon (笔记本会装 tlp tlp-pd，见可选区)
 + firewalld
 + networkmanager+iwd
 
-base package:
+## base package:
 
 + neovim
 + zsh
 + tmux
-+ btop
-+ ntfs-3g
-+ exfatprogs
-+ dosfstools
-+ openssh
-+ rsync
-+ fd
-+ fzf
-+ ripgrep
++ git git-lfs man-db
++ btop gdu fastfetch
++ ntfs-3g exfatprogs
++ openssh rsync
++ fd fzf ripgrep
 + base-devel
-+ less
-+ reflector
++ less reflector
++ 7zip zip unzip unrar
++ aria2 wget
++ tree bc tldr
++ nmap nethogs ddrescue
++ smartmontools usbutils dmidecode powertop
 
-## device
+## device:
 
++ mesa vulkan-radeon (AMD 核显)
++ nvidia-open-dkms nvidia-utils nvidia-settings (RTX 独显，dkms)
 + alsa-utils
-+ cups system-config-printer
-+ mesa vulkan-intel
 
 ## language
 
 locale-gen
-
 user level LANG
 
-## font
+必装（依赖原因）：fennel + Rust + Go + Python
++ go
++ python uv npm luarocks
++ rustup
+
+其余语言与构建工具见可选区
+
+## font (必装):
 
 + terminus-font (for tty /etc/vconsole.conf)
 + ttf-firacode-nerd
++ noto-fonts-cjk wqy-zenhei
 
-## utils
-
-+ git
-+ man-pages-zh_cn
-+ go
-+ python
-+ uv
-+ 7zip
-+ zip
-+ unzip
-+ unrar
-+ npm
-+ gcc
-+ luarocks
-
-## network
+## network:
 
 + manual install yay
-+ wireless-regdb
-+ mihomo-bin
-+ aria2
++ mihomo-bin (AUR)
 
-## password
+## password:
 
 + pass
-+ pass-import
 + wl-clipboard
++ qtpass (GUI)
 
-## github
+## github:
 
-github-cli
-
++ github-cli
 
 ## GUI
 
 ### plasma
 
 + plasma-meta
-+ dolphin
-+ konsole
-+ ark
-+ kdeconnect
-+ gwenview
-+ partitionmanager
-+ okular
++ dolphin konsole ark gwenview okular partitionmanager kdeconnect
++ kalk (KDE 项目)
 
 ### login manager
 
-use default plasma-login-manager
+use default plasma-login-manager (plasmalogin.service)
 
-### input 
+### input
 
 + fcitx5-im
 + fcitx5-rime
-+ rime-ice-git
++ rime-ice-git (AUR)
 
 ### GUI software
 
-+ helium
-+ wechat wqy-zenhei ttf-twemoji
-+ wps-office-cn wps-office-mui-zh-cn ttf-wps-fonts ttf-ms-fonts wps-office-fonts
++ helium-browser-bin (AUR)
 + vlc
 
-### steam
+## 可选 (可能会装，分类罗列)
 
-lib32-mesa lib32-vulkan-intel rtmpdump
-steam
+### secure boot
 
-### password
++ sbctl sbsigntools (自有密钥流程见 SecureBoot迁移记录；NVIDIA DKMS 自动签 = framework.conf.d/50-signing.conf)
 
-+ qtpass
+### virtualization (KVM)
+
++ libvirt qemu-desktop virt-manager virt-viewer
++ dnsmasq swtpm edk2-ovmf virtiofsd
++ remmina (KVM 项目，RDP 连接虚机)
+
+### containers
+
++ docker docker-compose
++ podman podman-compose
+
+### sync
+
++ syncthing (systemctl --user 管理)
+
+### 笔记本电源
+
++ tlp tlp-pd (笔记本会装)
+
+### 系统工具
+
++ dosfstools man-pages-zh_cn pass-import wireless-regdb
++ downgrade (AUR)
+
+### 办公 / 通讯
+
++ wps-office-cn wps-office-mui-zh-cn ttf-wps-fonts ttf-ms-fonts wps-office-fonts
++ wechat ttf-twemoji
+
+### 游戏 / 图形
+
++ steam lib32-mesa lib32-vulkan-radeon lib32-nvidia-utils
++ krita
+
+### 服务器 / 媒体
+
++ jellyfin-server jellyfin-web
++ moonlight-qt llama-swap-bin (AUR)
++ flatpak: com.baidu.NetDisk (百度网盘)
+
+### 开发扩展
+
++ cmake meson gdb clang lldb
++ jdk17-openjdk clojure leiningen ghc sbcl racket-minimal python-pipx
++ boost openblas sdl2_image sdl2_mixer sdl2_ttf tree-sitter-cli
++ ffmpeg sox
++ beancount beangulp beanquery fava (记账栈，AUR)

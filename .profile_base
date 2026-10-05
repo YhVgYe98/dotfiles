@@ -23,11 +23,9 @@ alias vim='nvim'
 alias vi='nvim'
 alias ariadl='aria2c --auto-file-renaming --no-conf -x 16'
 alias tmuxa='tmux new-session -A -s main'
+alias hermes='env GTK_IM_MODULE=fcitx QT_IM_MODULE=fcitx XMODIFIERS=@im=fcitx hermes'
 
 export GPG_TTY=$(tty)
 
 export GOPROXY=https://goproxy.cn,direct
-
-alias pi='npx -y @earendil-works/pi-coding-agent'
-alias pi-web='npx -y @agegr/pi-web'
 
